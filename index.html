@@ -1555,6 +1555,13 @@ function render() {
     appEl.classList.remove("view-enter");
     void appEl.offsetWidth; // 強制リフローで再アニメーションを可能にする
     appEl.classList.add("view-enter");
+    // アニメーションが終わったらクラスを外す。
+    // 外しておかないと、次の自動更新でinnerHTMLが書き換わったときに
+    // 新しい子要素がまたアニメーションの対象になってしまうため。
+    clearTimeout(state._viewEnterTimer);
+    state._viewEnterTimer = setTimeout(() => {
+      appEl.classList.remove("view-enter");
+    }, 320);
   }
   state._lastRenderedView = state.view;
   state._lastRenderedThreadId = state.currentThreadId;
