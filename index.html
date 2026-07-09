@@ -499,12 +499,13 @@
   <span>
     愛知総合工科高校＠掲示板
     <button id="themeToggleBtn" style="background:none; border:none; cursor:pointer; font-size:13px; vertical-align:middle; padding:0 6px; margin-left:4px;">🌙</button>
-    <button onclick="handleRefresh()" style="background:none; border:1px solid #fff; border-radius:4px; color:#fff; cursor:pointer; font-size:12px; margin-left:8px; padding:2px 8px;">🔄 更新</button>
+    <button id="manualRefreshBtn" onclick="handleRefresh()" style="background:none; border:1px solid #fff; border-radius:4px; color:#fff; cursor:pointer; font-size:12px; margin-left:8px; padding:2px 8px;">🔄 更新</button>
   </span>
   <span class="topbar-admin" id="topbarAdmin"></span>
 </div>
-<div style="background:#fff3cd; color:#856404; padding:8px 12px; font-size:13px; border-bottom:1px solid #ffeeba;">
-  <strong>【運営からのお知らせ】</strong> 愛知総合工科非公式掲示板がopen！バナー画像募集中です！
+<div id="announcementBar" style="display:none; background:#fff3cd; color:#856404; padding:8px 34px 8px 12px; font-size:13px; border-bottom:1px solid #ffeeba; position:relative;">
+  <strong>【運営からのお知らせ】</strong> <span id="announcementText"></span>
+  <button id="announcementCloseBtn" aria-label="お知らせを閉じる" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:#856404; cursor:pointer; font-size:15px; padding:2px 6px;">✕</button>
 </div>
 <div class="bbs-subbar" id="crumb"></div>
 <div class="bbs-main">
@@ -533,14 +534,20 @@ const POLL_MS = 5000;
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 
-// --- 履歴管理（戻るボタン対応） ---
+// --- 履歴管理（戻る・進むボタン対応） ---
 window.addEventListener('popstate', (e) => {
-  if (e.state) {
-    state.view = e.state.view;
-    if (e.state.threadId) state.currentThreadId = e.state.threadId;
-    render();
-    refresh(false); // 戻った先のデータを最新化
+  const s = e.state || { view: "list", threadId: null };
+  state.view = s.view || "list";
+  state.currentThreadId = s.threadId || null;
+  if (state.view === "thread") {
+    state.currentThread = null;
+    state.posts = [];
+  } else if (state.view === "list") {
+    state.currentThreadId = null;
   }
+  state.loading = true;
+  render();
+  refresh(false); // 戻った先のデータを最新化
 });
 
 function pushHistory(view, threadId = null) {
@@ -549,8 +556,21 @@ function pushHistory(view, threadId = null) {
 }
 
 // --- 更新ボタン処理 ---
-function handleRefresh() {
-  refresh(true); // 強制リロード
+async function handleRefresh() {
+  const btn = document.getElementById("manualRefreshBtn");
+  if (btn) {
+    if (btn.disabled) return; // 連打防止
+    btn.disabled = true;
+    btn.textContent = "🔄 更新中…";
+  }
+  try {
+    await refresh(false); // silent=falseにして、失敗した時はちゃんとエラーを表示する
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "🔄 更新";
+    }
+  }
 }
 
 const state = {
@@ -563,7 +583,8 @@ const state = {
   loading: true,
   showNewThreadForm: false,
   session: null,
-  justOpenedThread: false, 
+  justOpenedThread: false,
+  announcement: null,
 };
 
 const appEl = document.getElementById("app");
@@ -586,6 +607,23 @@ function showNotice(msg) {
 function clearMessages() {
   errorEl.classList.remove("show");
   noticeEl.classList.remove("show");
+}
+
+function updateAnnouncementBar() {
+  const bar = document.getElementById("announcementBar");
+  const textEl = document.getElementById("announcementText");
+  if (!bar || !textEl) return;
+  if (!state.announcement) {
+    bar.style.display = "none";
+    return;
+  }
+  const dismissed = localStorage.getItem("aisogi_announcement_dismissed");
+  if (dismissed === state.announcement) {
+    bar.style.display = "none";
+    return;
+  }
+  textEl.textContent = state.announcement;
+  bar.style.display = "block";
 }
 
 function getSavedName() {
@@ -718,6 +756,15 @@ async function refresh(silent) {
   }
 
   try {
+    // お知らせ欄は毎回軽く取得しておく（他の人が管理者画面で更新したら反映されるように）
+    try {
+      const { data: settingsRow } = await sb.from("site_settings").select("announcement").eq("id", 1).single();
+      state.announcement = settingsRow ? settingsRow.announcement : null;
+    } catch (e) {
+      // お知らせ欄の取得失敗は致命的ではないので握りつぶす
+    }
+    updateAnnouncementBar();
+
     if (state.view === "list") {
       state.threads = await loadThreads();
     } else if (state.view === "thread" && state.currentThreadId) {
@@ -876,6 +923,7 @@ async function adminDismissReport(reportId) {
 }
 
 function openThread(id) {
+  pushHistory("thread", id);
   state.view = "thread";
   state.currentThreadId = id;
   state.currentThread = null;
@@ -887,6 +935,7 @@ function openThread(id) {
 }
 
 function backToList() {
+  pushHistory("list");
   state.view = "list";
   state.currentThreadId = null;
   state.currentThread = null;
@@ -910,16 +959,25 @@ function goAdminReports() {
   refresh(false);
 }
 
+function goAdminAnnouncement() {
+  pushHistory("admin-announcement");
+  state.view = "admin-announcement";
+  render();
+}
+
 function renderTopbarAdmin() {
   if (isAdmin()) {
     topbarAdminEl.innerHTML = `
       <button id="reportsLinkTop">通報一覧</button>
+      <span class="sep">|</span>
+      <button id="announcementLinkTop">お知らせ編集</button>
       <span class="sep">|</span>
       <span>管理者: ${escapeHtml(state.session.user.email)}</span>
       <span class="sep">|</span>
       <button id="logoutBtn">ログアウト</button>
     `;
     document.getElementById("reportsLinkTop").onclick = goAdminReports;
+    document.getElementById("announcementLinkTop").onclick = goAdminAnnouncement;
     document.getElementById("logoutBtn").onclick = async () => {
       await sb.auth.signOut();
       backToList();
@@ -941,6 +999,9 @@ function renderCrumb() {
     document.getElementById("crumbBack").onclick = backToList;
   } else if (state.view === "admin-reports") {
     crumbEl.innerHTML = `<button class="bbs-crumb-link" id="crumbBack">掲示板トップ</button> &gt; 通報一覧（管理者）`;
+    document.getElementById("crumbBack").onclick = backToList;
+  } else if (state.view === "admin-announcement") {
+    crumbEl.innerHTML = `<button class="bbs-crumb-link" id="crumbBack">掲示板トップ</button> &gt; お知らせ編集（管理者）`;
     document.getElementById("crumbBack").onclick = backToList;
   }
 }
@@ -1266,6 +1327,65 @@ function renderThreadView() {
   };
 }
 
+function renderAdminAnnouncementView() {
+  appEl.innerHTML = `
+    <div class="admin-box" style="max-width:480px;">
+      <div class="post-form-title">お知らせ欄の編集</div>
+      <p style="font-size:12px; color:#666; margin-top:0;">
+        ここに書いた内容が、掲示板の一番上に全員に表示されます。空欄で保存すると非表示になります。
+      </p>
+      <form id="announcementForm">
+        <div class="post-form-row align-top">
+          <textarea id="announcementInput" rows="4" maxlength="300" placeholder="例：メンテナンスのお知らせ、ルール変更のお知らせ など"></textarea>
+        </div>
+        <div class="post-form-actions">
+          <button type="button" class="btn" id="announcementClear">非表示にする</button>
+          <button type="submit" class="btn btn-primary" id="announcementSave">保存する</button>
+        </div>
+      </form>
+    </div>
+  `;
+  document.getElementById("announcementInput").value = state.announcement || "";
+
+  document.getElementById("announcementForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const text = document.getElementById("announcementInput").value.trim();
+    await saveAnnouncement(text);
+  };
+  document.getElementById("announcementClear").onclick = async () => {
+    document.getElementById("announcementInput").value = "";
+    await saveAnnouncement("");
+  };
+}
+
+async function saveAnnouncement(text) {
+  const saveBtn = document.getElementById("announcementSave");
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = "保存中…";
+  }
+  try {
+    const { error } = await sb
+      .from("site_settings")
+      .update({ announcement: text || null, updated_at: new Date().toISOString() })
+      .eq("id", 1);
+    if (error) throw error;
+    state.announcement = text || null;
+    // 自分がたった今更新した内容なので、自分の画面では非表示記録をリセットしておく
+    localStorage.removeItem("aisogi_announcement_dismissed");
+    updateAnnouncementBar();
+    showNotice("お知らせを更新しました。");
+  } catch (err) {
+    showError("お知らせの更新に失敗しました。");
+    console.error(err);
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "保存する";
+    }
+  }
+}
+
 function renderAdminLoginView() {
   appEl.innerHTML = `
     <div class="admin-box">
@@ -1391,6 +1511,7 @@ function render() {
   else if (state.view === "thread") renderThreadView();
   else if (state.view === "admin-login") renderAdminLoginView();
   else if (state.view === "admin-reports") renderAdminReportsView();
+  else if (state.view === "admin-announcement") renderAdminAnnouncementView();
 
   if (restore) {
     const el = document.getElementById(restore.id);
@@ -1429,6 +1550,14 @@ sb.auth.onAuthStateChange((_event, session) => {
     localStorage.setItem("bbs_theme", isDark ? "dark" : "light");
     themeToggleBtn.textContent = isDark ? "☀️" : "🌙";
   };
+
+  const announcementCloseBtn = document.getElementById("announcementCloseBtn");
+  if (announcementCloseBtn) {
+    announcementCloseBtn.onclick = () => {
+      localStorage.setItem("aisogi_announcement_dismissed", state.announcement || "");
+      document.getElementById("announcementBar").style.display = "none";
+    };
+  }
 
   const { data } = await sb.auth.getSession();
   state.session = data.session;
