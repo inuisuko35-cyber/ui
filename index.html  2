@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>愛知総合工科高校＠掲示板</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root { color-scheme: light; }
+  * , *::before, *::after { box-sizing: border-box; }
+  
+  /* 画面全体の高さを確保し、下が白くなるのを防ぐ修正 */
+  html {
+    height: 100%;
+    background: #efefef;
+  }
+  body {
+    margin: 0;
+    min-height: 100%;
+    background: #efefef;
+    font-family: 'MS PGothic', 'Osaka-Mono', 'Courier New', monospace;
+    color: #000;
+    font-size: 13px;
+  }
+
+  .bbs-topbar {
+    background: #2f6d2f;
+    color: #fff;
+    padding: 8px 12px;
+    font-weight: bold;
+    font-size: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+  .topbar-admin {
+    font-size: 12px;
+    font-weight: normal;
+  }
+  .topbar-admin button {
+    background: none;
+    border: none;
+    color: #d9f2d9;
+    text-decoration: underline;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    padding: 0;
+  }
+  .topbar-admin button:hover { color: #fff; }
+  .topbar-admin .sep { color: #9cc99c; margin: 0 4px; }
+
+  .bbs-subbar {
+    background: #cae1ca;
+    padding: 4px 12px;
+    font-size: 12px;
+    border-bottom: 1px solid #6b9b6b;
+  }
+  .bbs-subbar a, .bbs-crumb-link {
+    color: #0000ee;
+    text-decoration: underline;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: inherit;
+    padding: 0;
+  }
+
+  .bbs-main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 10px 12px 40px;
+  }
+
+  .bbs-error {
+    background: #ffe0e0;
+    border: 1px solid #cc0000;
+    color: #900;
+    padding: 6px 10px;
+    margin-bottom: 10px;
+    font-size: 12.5px;
+    display: none;
+  }
+  .bbs-error.show { display: block; }
+  .bbs-notice {
+    background: #e0f0ff;
+    border: 1px solid #4488cc;
+    color: #114477;
+    padding: 6px 10px;
+    margin-bottom: 10px;
+    font-size: 12.5px;
+    display: none;
+  }
+  .bbs-notice.show { display: block; }
+
+  .bbs-loading, .bbs-empty {
+    text-align: center;
+    color: #666;
+    padding: 30px 10px;
+    font-size: 12.5px;
+  }
+
+  /* --- Thread list --- */
+  .thread-list {
+    background: #fff;
+    border: 1px solid #999;
+    padding: 2px 0;
+    margin-bottom: 12px;
+    max-height: 520px;
+    overflow-y: auto;
+  }
+  .thread-row {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 4px 8px;
+    border-bottom: 1px solid #e5e5e5;
+  }
+  .thread-row:last-child { border-bottom: none; }
+  .thread-row-main {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    line-height: 1.5;
+  }
+  .thread-row-no {
+    color: #666;
+    min-width: 26px;
+    text-align: right;
+    flex-shrink: 0;
+    font-size: 12px;
+  }
+  .thread-row-title {
+    color: #0000ee;
+    text-decoration: underline;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 12.5px;
+    text-align: left;
+    padding: 0;
+    word-break: break-all;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .thread-row-title:hover { color: #ff0000; }
+  .thread-row-count {
+    color: #cc0000;
+    font-weight: bold;
+    font-size: 12px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .thread-row-delta {
+    color: #d98600;
+    font-weight: bold;
+    font-size: 11px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .thread-row-meta {
+    color: #999;
+    font-size: 11px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .thread-row-meta-left { min-width: 40px; }
+  .thread-row-admin-delete {
+    font-family: inherit;
+    font-size: 11px;
+    color: #cc0000;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-decoration: underline;
+    flex-shrink: 0;
+    margin-left: auto;
+    padding-left: 6px;
+  }
+  .thread-row-preview {
+    color: #555;
+    font-size: 11.5px;
+    padding-left: 30px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .new-thread-toggle {
+    display: block;
+    width: 100%;
+    background: #dde8dd;
+    border: 1px solid #6b9b6b;
+    color: #14501e;
+    font-weight: bold;
+    font-family: inherit;
+    font-size: 13px;
+    padding: 8px;
+    cursor: pointer;
+    margin-bottom: 12px;
+  }
+  .new-thread-toggle:hover { background: #cde3cd; }
+
+  .post-form {
+    background: #fff;
+    border: 1px solid #999;
+    padding: 10px;
+    margin-bottom: 14px;
+  }
+  .post-form.hidden { display: none; }
+  .post-form-title {
+    font-weight: bold;
+    color: #14501e;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  .post-form-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .post-form-row.align-top { align-items: flex-start; }
+  .post-form-row label {
+    width: 46px;
+    flex-shrink: 0;
+    color: #444;
+    font-size: 12.5px;
+  }
+  input[type="text"], input[type="email"], input[type="password"], textarea {
+    font-family: inherit;
+    font-size: 12.5px;
+    border: 1px solid #999;
+    padding: 4px 6px;
+    width: 100%;
+    background: #fff;
+  }
+  textarea { resize: vertical; }
+  .post-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .btn {
+    font-family: inherit;
+    font-size: 12.5px;
+    background: #e8e8e8;
+    border: 1px solid #888;
+    padding: 5px 16px;
+    cursor: pointer;
+  }
+  .btn:hover:not(:disabled) { background: #d8d8d8; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary {
+    background: #2f6d2f;
+    color: #fff;
+    border-color: #14501e;
+    font-weight: bold;
+  }
+  .btn-primary:hover:not(:disabled) { background: #245524; }
+
+  input:focus-visible, textarea:focus-visible, button:focus-visible {
+    outline: 2px solid #14501e;
+    outline-offset: 1px;
+  }
+
+  /* --- Thread view --- */
+  .thread-title-bar {
+    background: #fff;
+    border: 1px solid #999;
+    padding: 8px 10px;
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 10px;
+    word-break: break-all;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .thread-nav { margin-bottom: 8px; font-size: 12px; }
+
+  .post-item {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-bottom: 1px dotted #bbb;
+    padding: 6px 10px 8px;
+    transition: background-color 0.5s;
+  }
+  .post-item:first-child { border-top: 1px solid #ddd; }
+  .post-header { font-size: 12px; color: #333; margin-bottom: 3px; }
+  .post-header .no { color: #cc0000; font-weight: bold; }
+  .post-header .pname { color: #14501e; font-weight: bold; margin-left: 4px; }
+  .post-header .date { color: #555; margin-left: 4px; }
+  .post-header .uid { color: #777; margin-left: 4px; font-family: 'Osaka-Mono', 'Courier New', monospace; }
+  
+  /* 管理者限定：ビカビカ光るアニメーション */
+  @keyframes bikabika {
+    0%   { color: #ff0000; text-shadow: 0 0 6px #ff0000; }
+    20%  { color: #ff8800; text-shadow: 0 0 6px #ff8800; }
+    40%  { color: #00ff00; text-shadow: 0 0 6px #00ff00; }
+    60%  { color: #00ffff; text-shadow: 0 0 6px #00ffff; }
+    80%  { color: #ff00ff; text-shadow: 0 0 6px #ff00ff; }
+    100% { color: #ff0000; text-shadow: 0 0 6px #ff0000; }
+  }
+  .admin-bikabika {
+    animation: bikabika 0.4s linear infinite;
+    font-weight: 900 !important;
+  }
+
+  /* 【機能1】新着レスの自動強調フェード */
+  @keyframes wp-highlight {
+    0% { background-color: rgba(255, 235, 59, 0.4); }
+    100% { background-color: transparent; }
+  }
+  .post-highlight {
+    animation: wp-highlight 4s ease-out;
+  }
+
+  /* 【機能3】アンカーポップアップ用スタイル */
+  #postPopup {
+    display: none;
+    position: absolute;
+    background: #fff;
+    color: #000;
+    border: 1px solid #999;
+    box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+    padding: 10px;
+    max-width: 440px;
+    min-width: 260px;
+    z-index: 1000;
+    font-size: 13px;
+    pointer-events: none;
+  }
+
+  .post-body {
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.6;
+    font-size: 13px;
+  }
+  .anchor { color: #0000ee; text-decoration: underline; cursor: pointer; }
+  .anchor:hover { color: #ff0000; }
+  .post-delete, .post-quote-btn, .post-report-btn {
+    font-family: inherit;
+    font-size: 11px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 6px;
+    text-decoration: underline;
+  }
+  .post-delete { color: #cc0000; }
+  .post-quote-btn { color: #666; }
+  .post-report-btn { color: #b8860b; }
+
+  .post-vote-row {
+    display: flex;
+    gap: 14px;
+    margin-top: 5px;
+  }
+  .post-vote-btn {
+    font-family: inherit;
+    font-size: 12px;
+    color: #999;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .post-vote-btn:hover:not(:disabled) { color: #555; }
+  .post-vote-btn:disabled { cursor: default; }
+  .post-vote-count { font-variant-numeric: tabular-nums; }
+  .vote-emoji { display: inline-block; font-size: 13px; }
+  .vote-emoji.flash-good { animation: voteFlashGood 0.55s ease; }
+  .vote-emoji.flash-bad { animation: voteFlashBad 0.55s ease; }
+  @keyframes voteFlashGood {
+    0% { filter: none; transform: scale(1); }
+    35% { filter: drop-shadow(0 0 5px #2ecc40) brightness(1.5) saturate(2); transform: scale(1.45); }
+    100% { filter: none; transform: scale(1); }
+  }
+  @keyframes voteFlashBad {
+    0% { filter: none; transform: scale(1); }
+    35% { filter: drop-shadow(0 0 5px #ff4d4d) brightness(1.5) saturate(2); transform: scale(1.45); }
+    100% { filter: none; transform: scale(1); }
+  }
+
+  .post-image {
+    max-width: 100%;
+    max-height: 300px;
+    height: auto;
+    margin-top: 8px;
+    border: 1px solid #ccc;
+    display: block;
+  }
+
+  .reply-form { background: #fff; border: 1px solid #999; padding: 10px; margin-top: 14px; }
+
+  /* --- Admin --- */
+  .admin-box {
+    background: #fff;
+    border: 1px solid #999;
+    padding: 14px;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+  .admin-box .post-form-title { text-align: center; }
+  .report-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  .report-card .meta { font-size: 11.5px; color: #666; margin-bottom: 4px; }
+  .report-card .thread-name { color: #14501e; font-weight: bold; }
+  .report-card .reason { color: #b8860b; font-size: 12px; margin-bottom: 6px; }
+  .report-card .content-preview {
+    background: #f7f7f7;
+    border: 1px dashed #ccc;
+    padding: 6px 8px;
+    font-size: 12.5px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin-bottom: 8px;
+  }
+  .report-card .actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* ============================================================
+     【機能5】ダークモード用スタイル（修正：html基準に変更）
+     ============================================================ */
+  html.dark-theme,
+  html.dark-theme body {
+    background: #121212;
+    color: #e0e0e0;
+  }
+  html.dark-theme .thread-list,
+  html.dark-theme .post-form,
+  html.dark-theme .reply-form,
+  html.dark-theme .post-item,
+  html.dark-theme .thread-title-bar,
+  html.dark-theme .admin-box,
+  html.dark-theme .report-card,
+  html.dark-theme #postPopup {
+    background: #1e1e1e;
+    border-color: #383838;
+    color: #e0e0e0;
+  }
+  html.dark-theme .post-item { border-bottom: 1px dotted #444; }
+  html.dark-theme .bbs-subbar { background: #1a2e1a; border-bottom-color: #2d4f2d; color: #ccc; }
+  html.dark-theme input[type="text"],
+  html.dark-theme input[type="email"],
+  html.dark-theme input[type="password"],
+  html.dark-theme textarea {
+    background: #282828;
+    color: #e0e0e0;
+    border-color: #444;
+  }
+  html.dark-theme .thread-row { border-bottom-color: #282828; }
+  html.dark-theme .thread-row-title,
+  html.dark-theme .bbs-subbar a,
+  html.dark-theme .bbs-crumb-link,
+  html.dark-theme .anchor { color: #8ab4f8; }
+  html.dark-theme .thread-row-preview,
+  html.dark-theme .post-header,
+  html.dark-theme .post-header .date,
+  html.dark-theme .post-header .uid,
+  html.dark-theme .post-quote-btn,
+  html.dark-theme .post-report-btn { color: #aaa; }
+  html.dark-theme .report-card .content-preview { background: #252525; border-color: #444; }
+  html.dark-theme .btn { background: #333; color: #fff; border-color: #555; }
+  html.dark-theme .btn:hover:not(:disabled) { background: #444; }
+  html.dark-theme .post-vote-btn { color: #888; }
+  html.dark-theme .post-vote-btn:hover:not(:disabled) { color: #ccc; }
+  html.dark-theme .new-thread-toggle { background: #223a22; border-color: #2d4f2d; color: #8ad499; }
+  html.dark-theme .new-thread-toggle:hover { background: #2a472a; }
+  /* ============================================================ */
+
+  @media (max-width: 460px) {
+    .thread-row-meta { display: none; }
+    .post-form-row { flex-wrap: wrap; }
+    .post-form-row label { width: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bbs-topbar">
+  <span>
+    愛知総合工科高校＠掲示板
+    <button id="themeToggleBtn" style="background:none; border:none; cursor:pointer; font-size:13px; vertical-align:middle; padding:0 6px; margin-left:4px;">🌙</button>
+    <button onclick="handleRefresh()" style="background:none; border:1px solid #fff; border-radius:4px; color:#fff; cursor:pointer; font-size:12px; margin-left:8px; padding:2px 8px;">🔄 更新</button>
+  </span>
+  <span class="topbar-admin" id="topbarAdmin"></span>
+</div>
+<div style="background:#fff3cd; color:#856404; padding:8px 12px; font-size:13px; border-bottom:1px solid #ffeeba;">
+  <strong>【運営からのお知らせ】</strong> ここにお知らせ文を記載できます。（例：○月○日にメンテナンスを行います）
+</div>
+<div class="bbs-subbar" id="crumb"></div>
+<div class="bbs-main">
+  <div class="bbs-error" id="errorBox"></div>
+  <div class="bbs-notice" id="noticeBox"></div>
+  <div id="app"></div>
+</div>
+
+<div id="postPopup"></div>
+
+<script>
+/* ============================================================
+   設定：ここに自分のSupabaseプロジェクトの情報を入れてください。
+   ============================================================ */
+const SUPABASE_URL = "https://porrirsbfjiawvkgagco.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_46bYXuvQVPiHkmhFZVrL_w_eJQtPoIa";
+
+// ▼▼ トップ画像のURL設定（簡単に変更できます！） ▼▼
+// 画像を変えたい時は、新しい画像をGitHubに上げてここのファイル名を書き換えるだけです
+const TOP_IMAGE_URL = "./overlay-image.jpg"; 
+// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+const DEFAULT_NAME = "名無しさん@実習中";
+const POLL_MS = 5000;
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+
+// --- 履歴管理（戻るボタン対応） ---
+window.addEventListener('popstate', (e) => {
+  if (e.state) {
+    state.view = e.state.view;
+    if (e.state.threadId) state.currentThreadId = e.state.threadId;
+    render();
+    refresh(false); // 戻った先のデータを最新化
+  }
+});
+
+function pushHistory(view, threadId = null) {
+  const currentState = { view, threadId };
+  history.pushState(currentState, '', '');
+}
+
+// --- 更新ボタン処理 ---
+function handleRefresh() {
+  refresh(true); // 強制リロード
+}
+
+const state = {
+  view: "list",
+  threads: [],
+  currentThreadId: null,
+  currentThread: null,
+  posts: [],
+  reports: [],
+  loading: true,
+  showNewThreadForm: false,
+  session: null,
+  justOpenedThread: false, 
+};
+
+const appEl = document.getElementById("app");
+const crumbEl = document.getElementById("crumb");
+const errorEl = document.getElementById("errorBox");
+const noticeEl = document.getElementById("noticeBox");
+const topbarAdminEl = document.getElementById("topbarAdmin");
+const popupEl = document.getElementById("postPopup");
+
+function showError(msg) {
+  errorEl.textContent = msg;
+  errorEl.classList.add("show");
+  noticeEl.classList.remove("show");
+}
+function showNotice(msg) {
+  noticeEl.textContent = msg;
+  noticeEl.classList.add("show");
+  errorEl.classList.remove("show");
+}
+function clearMessages() {
+  errorEl.classList.remove("show");
+  noticeEl.classList.remove("show");
+}
+
+function getSavedName() {
+  return localStorage.getItem("aisogi_name") || "";
+}
+function saveName(name) {
+  localStorage.setItem("aisogi_name", name);
+}
+
+function getVotedPosts() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem("aisogi_voted_posts") || "[]"));
+  } catch (e) {
+    return new Set();
+  }
+}
+function markVoted(postId) {
+  const voted = getVotedPosts();
+  voted.add(postId);
+  localStorage.setItem("aisogi_voted_posts", JSON.stringify([...voted]));
+}
+function unmarkVoted(postId) {
+  const voted = getVotedPosts();
+  voted.delete(postId);
+  localStorage.setItem("aisogi_voted_posts", JSON.stringify([...voted]));
+}
+
+function checkCooldown() {
+  const lastPostTime = localStorage.getItem("bbs_last_post_time");
+  if (lastPostTime && Date.now() - parseInt(lastPostTime) < 5000) {
+    return false;
+  }
+  return true;
+}
+
+async function getDailyId() {
+  let deviceId = localStorage.getItem('bbs_device_id');
+  if (!deviceId) {
+    deviceId = Math.random().toString(36).substring(2, 15);
+    localStorage.setItem('bbs_device_id', deviceId);
+  }
+  const d = new Date();
+  const dateStr = d.toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' });
+  const raw = deviceId + dateStr;
+  
+  let hash = 0;
+  for (let i = 0; i < raw.length; i++) {
+    const char = raw.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(16).padStart(8, '0');
+}
+
+const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+function formatDate(iso) {
+  const d = new Date(iso);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())}(${WEEKDAYS[d.getDay()]}) ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+function formatRelative(iso) {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const sec = Math.max(0, Math.floor(diffMs / 1000));
+  if (sec < 60) return `${sec}秒前`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}分前`;
+  const hour = Math.floor(min / 60);
+  if (hour < 24) return `${hour}時間前`;
+  const day = Math.floor(hour / 24);
+  return `${day}日前`;
+}
+const seenReplyCounts = {};
+function getDelta(threadId, replyCount) {
+  if (!(threadId in seenReplyCounts)) {
+    seenReplyCounts[threadId] = replyCount;
+    return 0;
+  }
+  return replyCount - seenReplyCounts[threadId];
+}
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+function renderContentHtml(text) {
+  const escaped = escapeHtml(text);
+  return escaped.replace(/&gt;&gt;(\d+)/g, (m, no) => `<span class="anchor" data-anchor="${no}">&gt;&gt;${no}</span>`);
+}
+function isAdmin() {
+  return !!state.session;
+}
+
+async function loadThreads() {
+  const { data, error } = await sb
+    .from("threads")
+    .select("*")
+    .order("last_reply_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+async function loadPosts(threadId) {
+  const { data, error } = await sb
+    .from("posts")
+    .select("*")
+    .eq("thread_id", threadId)
+    .order("no", { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+async function loadReports() {
+  const { data, error } = await sb
+    .from("reports")
+    .select("id, reason, created_at, posts:post_id ( id, no, name, content, thread_id, threads:thread_id ( id, title ) )")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+async function refresh(silent) {
+  let prevPostCount = 0;
+  let isAtBottom = false;
+  if (state.view === "thread") {
+    prevPostCount = state.posts.length;
+    isAtBottom = (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 80;
+  }
+
+  try {
+    if (state.view === "list") {
+      state.threads = await loadThreads();
+    } else if (state.view === "thread" && state.currentThreadId) {
+      const [{ data: threadRow, error: threadErr }, posts] = await Promise.all([
+        sb.from("threads").select("*").eq("id", state.currentThreadId).single(),
+        loadPosts(state.currentThreadId),
+      ]);
+      if (threadErr) throw threadErr;
+      state.currentThread = threadRow;
+
+      if (prevPostCount > 0 && posts.length > prevPostCount) {
+        for (let i = prevPostCount; i < posts.length; i++) {
+          posts[i].isNew = true;
+        }
+      }
+      state.posts = posts;
+    } else if (state.view === "admin-reports") {
+      state.reports = await loadReports();
+    }
+    if (!silent) clearMessages();
+  } catch (e) {
+    if (!silent) showError("読み込みに失敗しました。設定を確認してください。");
+    console.error(e);
+  } finally {
+    const hasNewPosts = (state.view === "thread" && state.posts.length > prevPostCount && prevPostCount > 0);
+    state.loading = false;
+    if (silent && isTypingInForm()) return;
+    render();
+    
+    if (state.view === "thread") {
+      if (state.justOpenedThread) {
+        window.scrollTo({ top: document.body.scrollHeight });
+        state.justOpenedThread = false; 
+      } else if (hasNewPosts && isAtBottom) {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+      }
+    }
+  }
+}
+
+function isTypingInForm() {
+  const active = document.activeElement;
+  return !!(
+    active &&
+    appEl.contains(active) &&
+    (active.tagName === "INPUT" || active.tagName === "TEXTAREA")
+  );
+}
+
+async function uploadImage(fileElementId) {
+  const fileInput = document.getElementById(fileElementId);
+  const file = fileInput.files[0];
+  if (!file) return null;
+
+  const MAX_SIZE = 8 * 1024 * 1024; // 8MB
+  if (file.size > MAX_SIZE) {
+    throw new Error("画像のサイズが大きすぎます（8MB以下にしてください。スマホのカメラ写真は「写真を圧縮」設定にすると小さくなります）");
+  }
+
+  // スマホのカメラ写真は拡張子が無い・変な形式のことがあるためフォールバックする
+  const hasExt = file.name && file.name.includes(".");
+  const ext = (hasExt ? file.name.split(".").pop() : "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 10)}.${ext}`;
+
+  const { error } = await sb.storage
+    .from("bbs-images")
+    .upload(fileName, file, {
+      contentType: file.type || "image/jpeg",
+      upsert: false,
+    });
+
+  if (error) {
+    throw new Error(`画像のアップロードに失敗しました（${error.message}）`);
+  }
+
+  const { data } = sb.storage.from("bbs-images").getPublicUrl(fileName);
+  return data.publicUrl;
+}
+
+async function createThread(title, name, content, imageUrl) {
+  const uid = isAdmin() ? "ADMIN" : await getDailyId();
+  const { data: thread, error: threadErr } = await sb
+    .from("threads")
+    .insert({ title })
+    .select()
+    .single();
+  if (threadErr) throw threadErr;
+
+  const { error: postErr } = await sb
+    .from("posts")
+    .insert({ thread_id: thread.id, name: name || DEFAULT_NAME, content, image_url: imageUrl, uid: uid });
+  if (postErr) throw postErr;
+
+  return thread;
+}
+
+async function createReply(threadId, name, content, imageUrl) {
+  const uid = isAdmin() ? "ADMIN" : await getDailyId(); 
+  const { error } = await sb
+    .from("posts")
+    .insert({ thread_id: threadId, name: name || DEFAULT_NAME, content, image_url: imageUrl, uid: uid });
+  if (error) throw error;
+}
+
+async function reportPost(postId, reason) {
+  const { error } = await sb.from("reports").insert({ post_id: postId, reason: reason || null });
+  if (error) throw error;
+}
+
+async function voteGood(postId) {
+  const { error } = await sb.rpc("increment_good", { target_post_id: postId });
+  if (error) throw error;
+}
+async function voteBad(postId) {
+  const { error } = await sb.rpc("increment_bad", { target_post_id: postId });
+  if (error) throw error;
+}
+
+function handleVoteClick(postId, type) {
+  const post = state.posts.find((p) => p.id === postId);
+  if (!post || getVotedPosts().has(postId)) return;
+
+  markVoted(postId);
+  if (type === "good") post.good_count = (post.good_count ?? 0) + 1;
+  else post.bad_count = (post.bad_count ?? 0) + 1;
+  post.justVoted = type;
+  render();
+
+  setTimeout(() => {
+    post.justVoted = null;
+  }, 600);
+
+  const call = type === "good" ? voteGood(postId) : voteBad(postId);
+  call.catch((err) => {
+    // 失敗した場合は表示とローカルの投票記録を元に戻す
+    if (type === "good") post.good_count = Math.max(0, (post.good_count ?? 1) - 1);
+    else post.bad_count = Math.max(0, (post.bad_count ?? 1) - 1);
+    unmarkVoted(postId);
+    showError("投票に失敗しました。もう一度お試しください。");
+    console.error(err);
+    render();
+  });
+}
+
+async function adminDeletePost(postId) {
+  const { error } = await sb.from("posts").delete().eq("id", postId);
+  if (error) throw error;
+}
+async function adminDeleteThread(threadId) {
+  const { error } = await sb.from("threads").delete().eq("id", threadId);
+  if (error) throw error;
+}
+async function adminDismissReport(reportId) {
+  const { error } = await sb.from("reports").delete().eq("id", reportId);
+  if (error) throw error;
+}
+
+function openThread(id) {
+  state.view = "thread";
+  state.currentThreadId = id;
+  state.currentThread = null;
+  state.posts = [];
+  state.loading = true;
+  state.justOpenedThread = true;
+  render();
+  refresh(false);
+}
+
+function backToList() {
+  state.view = "list";
+  state.currentThreadId = null;
+  state.currentThread = null;
+  state.posts = [];
+  state.loading = true;
+  render();
+  refresh(false);
+}
+
+function goAdminLogin() {
+  pushHistory("admin-login");
+  state.view = "admin-login";
+  render();
+}
+
+function goAdminReports() {
+  pushHistory("admin-reports");
+  state.view = "admin-reports";
+  state.loading = true;
+  render();
+  refresh(false);
+}
+
+function renderTopbarAdmin() {
+  if (isAdmin()) {
+    topbarAdminEl.innerHTML = `
+      <button id="reportsLinkTop">通報一覧</button>
+      <span class="sep">|</span>
+      <span>管理者: ${escapeHtml(state.session.user.email)}</span>
+      <span class="sep">|</span>
+      <button id="logoutBtn">ログアウト</button>
+    `;
+    document.getElementById("reportsLinkTop").onclick = goAdminReports;
+    document.getElementById("logoutBtn").onclick = async () => {
+      await sb.auth.signOut();
+      backToList();
+    };
+  } else {
+    topbarAdminEl.innerHTML = `<button id="adminLoginBtn">管理者ログイン</button>`;
+    document.getElementById("adminLoginBtn").onclick = goAdminLogin;
+  }
+}
+
+function renderCrumb() {
+  if (state.view === "list") {
+    crumbEl.innerHTML = `<span>掲示板トップ &gt; スレッド一覧</span>`;
+  } else if (state.view === "thread") {
+    crumbEl.innerHTML = `<button class="bbs-crumb-link" id="crumbBack">掲示板トップ</button> &gt; スレッド`;
+    document.getElementById("crumbBack").onclick = backToList;
+  } else if (state.view === "admin-login") {
+    crumbEl.innerHTML = `<button class="bbs-crumb-link" id="crumbBack">掲示板トップ</button> &gt; 管理者ログイン`;
+    document.getElementById("crumbBack").onclick = backToList;
+  } else if (state.view === "admin-reports") {
+    crumbEl.innerHTML = `<button class="bbs-crumb-link" id="crumbBack">掲示板トップ</button> &gt; 通報一覧（管理者）`;
+    document.getElementById("crumbBack").onclick = backToList;
+  }
+}
+
+function renderListView() {
+  const topThreads = state.threads.slice(0, 15);
+  const rows = topThreads
+    .map((t) => {
+      const delta = getDelta(t.id, t.reply_count ?? 0);
+      const previewText = t.last_post_content
+        ? t.last_post_content.replace(/\s+/g, " ").trim()
+        : "";
+      return `
+      <div class="thread-row">
+        <div class="thread-row-main">
+          <span class="thread-row-meta thread-row-meta-left">${formatRelative(t.last_reply_at)}</span>
+          ${delta > 0 ? `<span class="thread-row-delta">+${delta}</span>` : ""}
+          <button class="thread-row-title" data-open="${t.id}">${escapeHtml(t.title)}</button>
+          <span class="thread-row-count">(${t.reply_count ?? 0})</span>
+          ${isAdmin() ? `<button class="thread-row-admin-delete" data-admin-del-thread="${t.id}">削除</button>` : ""}
+        </div>
+        ${previewText ? `<div class="thread-row-preview">${escapeHtml(previewText)}</div>` : ""}
+      </div>`;
+    })
+    .join("");
+
+  appEl.innerHTML = `
+    
+    ${TOP_IMAGE_URL ? `<div style="text-align: center; margin-bottom: 12px;"><img src="${TOP_IMAGE_URL}" alt="掲示板トップ画像" style="max-width: 100%; height: auto; border: 1px solid #999; border-radius: 4px;"></div>` : ""}
+    <button class="new-thread-toggle" id="toggleNewThread">
+      ${state.showNewThreadForm ? "▲ スレッド作成フォームを閉じる" : "＋ 新しいスレッドを立てる"}
+    </button>
+    <form class="post-form ${state.showNewThreadForm ? "" : "hidden"}" id="newThreadForm">
+      <div class="post-form-title">スレッド新規作成</div>
+      <div class="post-form-row">
+        <label for="ntTitle">件名</label>
+        <input type="text" id="ntTitle" maxlength="100" placeholder="例：今日の実習について語るスレ" />
+      </div>
+      <div class="post-form-row">
+        <label for="ntName">名前</label>
+        <input type="text" id="ntName" maxlength="20" placeholder="${DEFAULT_NAME}" value="${escapeHtml(getSavedName())}" />
+      </div>
+      <div class="post-form-row align-top">
+        <label for="ntContent">本文</label>
+        <textarea id="ntContent" rows="4" maxlength="1000" placeholder="スレの最初の書き込みを入力してね"></textarea>
+      </div>
+      <div class="post-form-row">
+        <label for="ntImage">画像</label>
+        <input type="file" id="ntImage" accept="image/*" />
+      </div>
+      <div class="post-form-actions">
+        <button type="submit" class="btn btn-primary" id="ntSubmit">スレ立てる</button>
+      </div>
+    </form>
+    ${
+      state.loading
+        ? `<div class="bbs-loading">板を読み込んでいます…</div>`
+        : state.threads.length === 0
+        ? `<div class="bbs-empty">まだスレッドがありません。最初の1本を立ててみよう。</div>`
+        : `<div class="thread-list">${rows}</div>`
+    }
+  `;
+
+  document.getElementById("toggleNewThread").onclick = () => {
+    state.showNewThreadForm = !state.showNewThreadForm;
+    render();
+  };
+
+  const form = document.getElementById("newThreadForm");
+  if (form) {
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      
+      if (!checkCooldown()) {
+        showError("連続投稿です。5秒以上間隔を空けてください。");
+        return;
+      }
+
+      const title = document.getElementById("ntTitle").value.trim();
+      const name = document.getElementById("ntName").value.trim();
+      const content = document.getElementById("ntContent").value.trim();
+      if (!title || !content) return;
+      const btn = document.getElementById("ntSubmit");
+      btn.disabled = true;
+      btn.textContent = "書き込み中…";
+      try {
+        if (name) saveName(name);
+        const imageUrl = await uploadImage("ntImage");
+        const thread = await createThread(title, name, content, imageUrl);
+        
+        localStorage.setItem("bbs_last_post_time", Date.now());
+        
+        state.showNewThreadForm = false;
+        openThread(thread.id);
+      } catch (err) {
+        showError(err.message ? `スレッドの作成に失敗しました：${err.message}` : "スレッドの作成に失敗しました。");
+        console.error(err);
+        btn.disabled = false;
+        btn.textContent = "スレ立てる";
+      }
+    };
+  }
+
+  appEl.querySelectorAll("[data-open]").forEach((btn) => {
+    btn.onclick = () => openThread(btn.getAttribute("data-open"));
+  });
+
+  appEl.querySelectorAll("[data-admin-del-thread]").forEach((btn) => {
+    btn.onclick = async () => {
+      if (!confirm("このスレッドを削除しますか？（中のレスも全て削除されます）")) return;
+      try {
+        await adminDeleteThread(btn.getAttribute("data-admin-del-thread"));
+        await refresh(false);
+      } catch (err) {
+        showError("削除に失敗しました。");
+        console.error(err);
+      }
+    };
+  });
+}
+
+function renderThreadView() {
+  if (!state.loading && !state.currentThread) {
+    appEl.innerHTML = `
+      <div class="bbs-empty">
+        このスレッドは見つかりませんでした。
+        <div style="margin-top:10px;"><button class="bbs-crumb-link" id="backLink">スレッド一覧へ戻る</button></div>
+      </div>`;
+    document.getElementById("backLink").onclick = backToList;
+    return;
+  }
+
+  const votedPosts = getVotedPosts();
+  const postsHtml = state.posts
+    .map((p) => {
+      const bikaClass = (p.uid === "ADMIN") ? " admin-bikabika" : "";
+      const highlightClass = p.isNew ? " post-highlight" : "";
+      const hasVoted = votedPosts.has(p.id);
+
+      return `
+      <div class="post-item${highlightClass}" data-post-no="${p.no}">
+        <div class="post-header">
+          <span class="no">${p.no}</span>
+          <span class="pname${bikaClass}">${escapeHtml(p.name)}</span>
+          <span class="date">${formatDate(p.created_at)}</span>
+          <span class="uid${bikaClass}">ID:${escapeHtml(p.uid || '???')}</span>
+          <button class="post-quote-btn" data-quote="${p.no}">レス</button>
+          ${
+            isAdmin()
+              ? `<button class="post-delete" data-admin-del-post="${p.id}">削除</button>`
+              : `<button class="post-report-btn" data-report="${p.id}">通報</button>`
+          }
+        </div>
+        <div class="post-body">${renderContentHtml(p.content)}${p.image_url ? `<img src="${p.image_url}" class="post-image" alt="添付画像">` : ""}</div>
+        <div class="post-vote-row">
+          <button class="post-vote-btn" data-vote-good="${p.id}" ${hasVoted ? "disabled" : ""}>
+            <span class="vote-emoji${p.justVoted === "good" ? " flash-good" : ""}">👍</span><span class="post-vote-count">${p.good_count ?? 0}</span>
+          </button>
+          <button class="post-vote-btn" data-vote-bad="${p.id}" ${hasVoted ? "disabled" : ""}>
+            <span class="vote-emoji${p.justVoted === "bad" ? " flash-bad" : ""}">👎</span><span class="post-vote-count">${p.bad_count ?? 0}</span>
+          </button>
+        </div>
+      </div>`;
+    })
+    .join("");
+
+  appEl.innerHTML = `
+    <div class="thread-title-bar">
+      <span>${state.currentThread ? escapeHtml(state.currentThread.title) : ""}</span>
+      ${isAdmin() ? `<button class="thread-row-admin-delete" id="deleteThreadBtn">スレ削除</button>` : ""}
+    </div>
+    <div class="thread-nav"><button class="bbs-crumb-link" id="backLink">← スレッド一覧へ戻る</button></div>
+    ${state.loading ? `<div class="bbs-loading">読み込んでいます…</div>` : `<div>${postsHtml}</div>`}
+    <form class="post-form reply-form" id="replyForm">
+      <div class="post-form-title">書き込む</div>
+      <div class="post-form-row">
+        <label for="rpName">名前</label>
+        <input type="text" id="rpName" maxlength="20" placeholder="${DEFAULT_NAME}" value="${escapeHtml(getSavedName())}" />
+      </div>
+      <div class="post-form-row align-top">
+        <label for="rpContent">本文</label>
+        <textarea id="rpContent" rows="3" maxlength="1000" placeholder=">>1 みたいにレス番号を書くと安価になるよ"></textarea>
+      </div>
+      <div class="post-form-row">
+        <label for="rpImage">画像</label>
+        <input type="file" id="rpImage" accept="image/*" />
+      </div>
+      <div class="post-form-actions">
+        <button type="submit" class="btn btn-primary" id="rpSubmit">書き込む</button>
+      </div>
+    </form>
+  `;
+
+  document.getElementById("backLink").onclick = backToList;
+
+  const deleteThreadBtn = document.getElementById("deleteThreadBtn");
+  if (deleteThreadBtn) {
+    deleteThreadBtn.onclick = async () => {
+      if (!confirm("このスレッドを削除しますか？（中のレスも全て削除されます）")) return;
+      try {
+        await adminDeleteThread(state.currentThreadId);
+        backToList();
+      } catch (err) {
+        showError("削除に失敗しました。");
+        console.error(err);
+      }
+    };
+  }
+
+  appEl.querySelectorAll("[data-quote]").forEach((btn) => {
+    btn.onclick = () => {
+      const no = btn.getAttribute("data-quote");
+      const textarea = document.getElementById("rpContent");
+      const sep = textarea.value && !textarea.value.endsWith("\n") ? "\n" : "";
+      textarea.value = `${textarea.value}${sep}>>${no}\n`;
+      textarea.focus();
+    };
+  });
+
+  appEl.querySelectorAll("[data-anchor]").forEach((span) => {
+    span.onclick = () => {
+      const no = span.getAttribute("data-anchor");
+      const target = appEl.querySelector(`[data-post-no="${no}"]`);
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
+    };
+
+    span.onmouseenter = (e) => {
+      const no = span.getAttribute("data-anchor");
+      const targetPost = state.posts.find(p => String(p.no) === no);
+      if (targetPost) {
+        const bikaClass = (targetPost.uid === "ADMIN") ? " admin-bikabika" : "";
+        popupEl.innerHTML = `
+          <div class="post-header" style="margin-bottom:5px; border-bottom:1px solid #ccc; padding-bottom:2px;">
+            <span class="no">${targetPost.no}</span>
+            <span class="pname${bikaClass}">${escapeHtml(targetPost.name)}</span>
+            <span class="date">${formatDate(targetPost.created_at)}</span>
+            <span class="uid${bikaClass}">ID:${escapeHtml(targetPost.uid || '???')}</span>
+          </div>
+          <div class="post-body" style="font-size:12px; line-height:1.4;">${escapeHtml(targetPost.content)}</div>
+        `;
+        popupEl.style.display = "block";
+        
+        const rect = span.getBoundingClientRect();
+        popupEl.style.left = `${window.scrollX + rect.left}px`;
+        popupEl.style.top = `${window.scrollY + rect.bottom + 4}px`;
+      }
+    };
+
+    span.onmouseleave = () => {
+      popupEl.style.display = "none";
+    };
+  });
+
+  appEl.querySelectorAll("[data-admin-del-post]").forEach((btn) => {
+    btn.onclick = async () => {
+      if (!confirm("このレスを削除しますか？")) return;
+      try {
+        await adminDeletePost(btn.getAttribute("data-admin-del-post"));
+        await refresh(false);
+      } catch (err) {
+        showError("削除に失敗しました。");
+        console.error(err);
+      }
+    };
+  });
+
+  appEl.querySelectorAll("[data-report]").forEach((btn) => {
+    btn.onclick = async () => {
+      const reason = window.prompt("通報理由（任意・省略可）を入力してください：", "");
+      if (reason === null) return; 
+      try {
+        await reportPost(btn.getAttribute("data-report"), reason.trim());
+        showNotice("通報しました。管理者が確認します。");
+      } catch (err) {
+        showError("通報に失敗しました。");
+        console.error(err);
+      }
+    };
+  });
+
+  appEl.querySelectorAll("[data-vote-good]").forEach((btn) => {
+    btn.onclick = () => handleVoteClick(btn.getAttribute("data-vote-good"), "good");
+  });
+
+  appEl.querySelectorAll("[data-vote-bad]").forEach((btn) => {
+    btn.onclick = () => handleVoteClick(btn.getAttribute("data-vote-bad"), "bad");
+  });
+
+  const replyForm = document.getElementById("replyForm");
+  replyForm.onsubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!checkCooldown()) {
+      showError("連続投稿です。5秒以上間隔を空けてください。");
+      return;
+    }
+
+    const name = document.getElementById("rpName").value.trim();
+    const content = document.getElementById("rpContent").value.trim();
+    if (!content) return;
+    const btn = document.getElementById("rpSubmit");
+    btn.disabled = true;
+    btn.textContent = "書き込み中…";
+    try {
+      if (name) saveName(name);
+      const imageUrl = await uploadImage("rpImage");
+      await createReply(state.currentThreadId, name, content, imageUrl);
+      
+      localStorage.setItem("bbs_last_post_time", Date.now());
+      
+      document.getElementById("rpContent").value = "";
+      document.getElementById("rpImage").value = "";
+      
+      state.justOpenedThread = true;
+      await refresh(false);
+    } catch (err) {
+      showError(err.message ? `書き込みに失敗しました：${err.message}` : "書き込みに失敗しました。");
+      console.error(err);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "書き込む";
+    }
+  };
+}
+
+function renderAdminLoginView() {
+  appEl.innerHTML = `
+    <div class="admin-box">
+      <div class="post-form-title">管理者ログイン</div>
+      <form id="adminLoginForm">
+        <div class="post-form-row" style="align-items:flex-start; flex-direction:column;">
+          <label for="alEmail" style="width:auto; margin-bottom:2px;">メールアドレス</label>
+          <input type="email" id="alEmail" required />
+        </div>
+        <div class="post-form-row" style="align-items:flex-start; flex-direction:column; margin-top:8px;">
+          <label for="alPassword" style="width:auto; margin-bottom:2px;">パスワード</label>
+          <input type="password" id="alPassword" required />
+        </div>
+        <div class="post-form-actions">
+          <button type="submit" class="btn btn-primary" id="alSubmit">ログイン</button>
+        </div>
+      </form>
+    </div>
+  `;
+  document.getElementById("adminLoginForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("alEmail").value.trim();
+    const password = document.getElementById("alPassword").value;
+    const btn = document.getElementById("alSubmit");
+    btn.disabled = true;
+    btn.textContent = "ログイン中…";
+    try {
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      showNotice("ログインしました。");
+      backToList();
+    } catch (err) {
+      showError("ログインに失敗しました。メールアドレスとパスワードを確認してください。");
+      console.error(err);
+      btn.disabled = false;
+      btn.textContent = "ログイン";
+    }
+  };
+}
+
+function renderAdminReportsView() {
+  if (state.loading) {
+    appEl.innerHTML = `<div class="bbs-loading">通報一覧を読み込んでいます…</div>`;
+    return;
+  }
+  if (state.reports.length === 0) {
+    appEl.innerHTML = `<div class="bbs-empty">現在、通報はありません。</div>`;
+    return;
+  }
+  const cards = state.reports
+    .map((r) => {
+      const post = r.posts;
+      if (!post) {
+        return `
+          <div class="report-card">
+            <div class="meta">${formatDate(r.created_at)}</div>
+            <div class="reason">対象の投稿は既に削除済みです</div>
+            <div class="actions">
+              <button class="btn" data-dismiss="${r.id}">通報を消す</button>
+            </div>
+          </div>`;
+      }
+      const threadTitle = post.threads ? post.threads.title : "(スレッド不明)";
+      return `
+        <div class="report-card">
+          <div class="meta">
+            <span class="thread-name">${escapeHtml(threadTitle)}</span>
+            ／ ${post.no}番「${escapeHtml(post.name)}」／ 通報日時: ${formatDate(r.created_at)}
+          </div>
+          ${r.reason ? `<div class="reason">通報理由: ${escapeHtml(r.reason)}</div>` : ""}
+          <div class="content-preview">${renderContentHtml(post.content)}</div>
+          <div class="actions">
+            <button class="btn" data-dismiss="${r.id}">問題なし（通報を消す）</button>
+            <button class="btn btn-primary" data-admin-del-post="${post.id}" data-dismiss-after="${r.id}">投稿を削除</button>
+          </div>
+        </div>`;
+    })
+    .join("");
+  appEl.innerHTML = `<div>${cards}</div>`;
+
+  appEl.querySelectorAll("[data-dismiss]").forEach((btn) => {
+    btn.onclick = async () => {
+      try {
+        await adminDismissReport(btn.getAttribute("data-dismiss"));
+        await refresh(false);
+      } catch (err) {
+        showError("処理に失敗しました。");
+        console.error(err);
+      }
+    };
+  });
+  appEl.querySelectorAll("[data-admin-del-post]").forEach((btn) => {
+    btn.onclick = async () => {
+      if (!confirm("この投稿を削除しますか？")) return;
+      try {
+        await adminDeletePost(btn.getAttribute("data-admin-del-post"));
+        const reportId = btn.getAttribute("data-dismiss-after");
+        if (reportId) await adminDismissReport(reportId);
+        await refresh(false);
+      } catch (err) {
+        showError("削除に失敗しました。");
+        console.error(err);
+      }
+    };
+  });
+}
+
+function render() {
+  const active = document.activeElement;
+  let restore = null;
+  if (active && appEl.contains(active) && active.id) {
+    restore = {
+      id: active.id,
+      value: active.value,
+      selectionStart: typeof active.selectionStart === "number" ? active.selectionStart : null,
+      selectionEnd: typeof active.selectionEnd === "number" ? active.selectionEnd : null,
+    };
+  }
+
+  renderTopbarAdmin();
+  renderCrumb();
+  if (state.view === "list") renderListView();
+  else if (state.view === "thread") renderThreadView();
+  else if (state.view === "admin-login") renderAdminLoginView();
+  else if (state.view === "admin-reports") renderAdminReportsView();
+
+  if (restore) {
+    const el = document.getElementById(restore.id);
+    if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) {
+      el.value = restore.value;
+      el.focus();
+      if (restore.selectionStart !== null) {
+        try {
+          el.setSelectionRange(restore.selectionStart, restore.selectionEnd);
+        } catch (e) {
+        }
+      }
+    }
+  }
+}
+
+sb.auth.onAuthStateChange((_event, session) => {
+  state.session = session;
+  render();
+});
+
+
+(async () => {
+  // 初回ロード時に現在の状態を履歴に登録
+  history.replaceState({ view: state.view, threadId: state.currentThreadId }, '', '');
+
+  // 修正：ダークモードのクラスを body から html (documentElement) に付与するように変更
+  const themeToggleBtn = document.getElementById("themeToggleBtn");
+  if (localStorage.getItem("bbs_theme") === "dark") {
+    document.documentElement.classList.add("dark-theme");
+    themeToggleBtn.textContent = "☀️";
+  }
+  themeToggleBtn.onclick = () => {
+    document.documentElement.classList.toggle("dark-theme");
+    const isDark = document.documentElement.classList.contains("dark-theme");
+    localStorage.setItem("bbs_theme", isDark ? "dark" : "light");
+    themeToggleBtn.textContent = isDark ? "☀️" : "🌙";
+  };
+
+  const { data } = await sb.auth.getSession();
+  state.session = data.session;
+  render();
+  refresh(false);
+  setInterval(() => refresh(true), POLL_MS);
+})();
+</script>
+</body>
+</html>
