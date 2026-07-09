@@ -331,6 +331,93 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
+  /* --- 掲示板下部フッター（オンライン人数＋累計カウンター） --- */
+  #bbsFooter {
+    margin-top: 20px;
+    padding: 12px 8px 20px;
+    border-top: 2px double #6b9b6b;
+    background: #f0e8d5;
+    text-align: center;
+    font-size: 11.5px;
+    color: #333;
+    font-family: 'MS PGothic', 'Courier New', monospace;
+  }
+  #bbsFooter .footer-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 6px 14px;
+    background: #fffcf0;
+    border: 1px solid #b8a870;
+    border-radius: 2px;
+    box-shadow: inset 0 0 0 1px #fff;
+  }
+  #bbsFooter .footer-item { white-space: nowrap; }
+  #bbsFooter .footer-sep { color: #888; }
+  #bbsFooter #visitCounterDisplay,
+  #bbsFooter #footerOnlineCount,
+  #bbsFooter #footerThreadOnline {
+    font-weight: bold;
+    color: #cc0000;
+    font-family: 'Courier New', monospace;
+    padding: 0 3px;
+    font-variant-numeric: tabular-nums;
+  }
+  .online-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #2ecc40;
+    box-shadow: 0 0 6px #2ecc40;
+    vertical-align: middle;
+    margin-right: 4px;
+    animation: onlinePulse 1.8s ease-in-out infinite;
+  }
+  @keyframes onlinePulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.45; }
+  }
+  html.dark-theme #bbsFooter {
+    background: #1a1a1a;
+    border-top-color: #444;
+    color: #ccc;
+  }
+  html.dark-theme #bbsFooter .footer-inner {
+    background: #252525;
+    border-color: #555;
+    box-shadow: inset 0 0 0 1px #333;
+  }
+  html.dark-theme #bbsFooter #visitCounterDisplay,
+  html.dark-theme #bbsFooter #footerOnlineCount,
+  html.dark-theme #bbsFooter #footerThreadOnline { color: #ff6b6b; }
+
+  /* スレ一覧の各行にオンライン人数バッジ */
+  .thread-row-online {
+    font-size: 10.5px;
+    color: #2ecc40;
+    font-weight: bold;
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding-left: 4px;
+  }
+  html.dark-theme .thread-row-online { color: #4dd865; }
+
+  /* スレ閲覧画面のタイトル横に出す人数バッジ */
+  .thread-online-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11.5px;
+    color: #2ecc40;
+    font-weight: bold;
+    margin-left: 10px;
+    vertical-align: middle;
+  }
+  html.dark-theme .thread-online-badge { color: #4dd865; }
+
   .thread-row {
     transition: background-color 0.18s ease;
   }
@@ -558,6 +645,20 @@
   <div id="app"></div>
 </div>
 
+<footer id="bbsFooter">
+  <div class="footer-inner">
+    <span class="footer-item">
+      <span class="online-dot" aria-hidden="true"></span>
+      現在<span id="footerOnlineCount">-</span>人が閲覧中
+      <span id="footerThreadOnlineWrap" style="display:none;">（このスレ: <span id="footerThreadOnline">-</span>人）</span>
+    </span>
+    <span class="footer-sep">|</span>
+    <span class="footer-item">
+      あなたは <span id="visitCounterDisplay">-</span> 人目のご来訪者です
+    </span>
+  </div>
+</footer>
+
 <div id="postPopup"></div>
 
 <script>
@@ -577,6 +678,141 @@ const POLL_MS = 5000;
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// ============================================================
+// リアルタイムのオンライン人数管理（SupabaseのPresence機能を利用）
+// ・ボード全体で今何人閲覧しているか
+// ・各スレッドで今何人開いているか
+// を全ユーザーで共有して表示する
+// ============================================================
+
+const clientId = "u_" + Math.random().toString(36).slice(2, 12);
+let boardChannel = null;      // 掲示板全体の在席チャンネル
+let threadChannel = null;     // 現在開いているスレの在席チャンネル
+let currentThreadChannelId = null;
+
+// スレIDごとのオンライン人数（スレ一覧表示用）
+const threadPresenceCounts = {};
+let boardOnlineCount = 0;
+let currentThreadOnlineCount = 0;
+
+function joinBoardPresence() {
+  if (boardChannel) return;
+  boardChannel = sb.channel("presence_board", {
+    config: { presence: { key: clientId } },
+  });
+
+  boardChannel.on("presence", { event: "sync" }, () => {
+    const stateMap = boardChannel.presenceState();
+    boardOnlineCount = Object.keys(stateMap).length;
+
+    // 各スレッドごとの在席人数も集計
+    Object.keys(threadPresenceCounts).forEach((k) => delete threadPresenceCounts[k]);
+    Object.values(stateMap).forEach((entries) => {
+      entries.forEach((entry) => {
+        if (entry && entry.thread_id) {
+          threadPresenceCounts[entry.thread_id] = (threadPresenceCounts[entry.thread_id] || 0) + 1;
+        }
+      });
+    });
+
+    updateOnlineDisplay();
+    updateThreadListOnlineBadges();
+  });
+
+  boardChannel.subscribe(async (status) => {
+    if (status === "SUBSCRIBED") {
+      await boardChannel.track({ thread_id: state.currentThreadId || null });
+    }
+  });
+}
+
+async function updateBoardPresenceLocation() {
+  if (!boardChannel) return;
+  try {
+    await boardChannel.track({ thread_id: state.currentThreadId || null });
+  } catch (e) { /* 無視 */ }
+}
+
+function joinThreadPresence(threadId) {
+  if (currentThreadChannelId === threadId && threadChannel) return;
+  leaveThreadPresence();
+  currentThreadChannelId = threadId;
+  threadChannel = sb.channel(`presence_thread_${threadId}`, {
+    config: { presence: { key: clientId } },
+  });
+  threadChannel.on("presence", { event: "sync" }, () => {
+    const stateMap = threadChannel.presenceState();
+    currentThreadOnlineCount = Object.keys(stateMap).length;
+    updateOnlineDisplay();
+  });
+  threadChannel.subscribe(async (status) => {
+    if (status === "SUBSCRIBED") {
+      await threadChannel.track({});
+    }
+  });
+}
+
+function leaveThreadPresence() {
+  if (threadChannel) {
+    try { sb.removeChannel(threadChannel); } catch (e) {}
+    threadChannel = null;
+    currentThreadChannelId = null;
+    currentThreadOnlineCount = 0;
+  }
+}
+
+function updateOnlineDisplay() {
+  const boardEl = document.getElementById("footerOnlineCount");
+  if (boardEl) boardEl.textContent = boardOnlineCount || "-";
+
+  const threadWrap = document.getElementById("footerThreadOnlineWrap");
+  const threadEl = document.getElementById("footerThreadOnline");
+  if (state.view === "thread" && state.currentThreadId) {
+    if (threadWrap) threadWrap.style.display = "";
+    if (threadEl) threadEl.textContent = currentThreadOnlineCount || "-";
+  } else {
+    if (threadWrap) threadWrap.style.display = "none";
+  }
+
+  // スレ閲覧画面のタイトル横バッジ
+  const badgeEl = document.getElementById("threadOnlineBadge");
+  if (badgeEl) badgeEl.textContent = `👥 ${currentThreadOnlineCount || 0}人閲覧中`;
+}
+
+function updateThreadListOnlineBadges() {
+  document.querySelectorAll("[data-thread-online-for]").forEach((el) => {
+    const threadId = el.getAttribute("data-thread-online-for");
+    const count = threadPresenceCounts[threadId] || 0;
+    el.textContent = count > 0 ? `👥${count}` : "";
+  });
+}
+
+// ============================================================
+// 累計入室カウンター（このタブで初回訪問時に1増やす）
+// ============================================================
+
+async function initVisitCounter() {
+  const displayEl = document.getElementById("visitCounterDisplay");
+  const alreadyCounted = sessionStorage.getItem("aisogi_visited");
+  try {
+    if (!alreadyCounted) {
+      const { data, error } = await sb.rpc("increment_visit_counter");
+      if (error) throw error;
+      sessionStorage.setItem("aisogi_visited", "1");
+      if (displayEl) displayEl.textContent = Number(data).toLocaleString();
+    } else {
+      const { data, error } = await sb.from("visit_counter").select("total").eq("id", 1).single();
+      if (error) throw error;
+      if (displayEl) displayEl.textContent = Number(data.total).toLocaleString();
+    }
+  } catch (e) {
+    console.error("visit counter error:", e);
+    if (displayEl) displayEl.textContent = "-";
+  }
+}
+
+// ============================================================
+
 
 // --- 履歴管理（戻る・進むボタン対応） ---
 window.addEventListener('popstate', (e) => {
@@ -586,9 +822,12 @@ window.addEventListener('popstate', (e) => {
   if (state.view === "thread") {
     state.currentThread = null;
     state.posts = [];
+    joinThreadPresence(state.currentThreadId);
   } else if (state.view === "list") {
     state.currentThreadId = null;
+    leaveThreadPresence();
   }
+  updateBoardPresenceLocation();
   state.loading = true;
   render();
   refresh(false); // 戻った先のデータを最新化
@@ -976,6 +1215,8 @@ function openThread(id) {
   state.justOpenedThread = true;
   render();
   refresh(false);
+  joinThreadPresence(id);
+  updateBoardPresenceLocation();
 }
 
 function backToList() {
@@ -987,6 +1228,9 @@ function backToList() {
   state.loading = true;
   render();
   refresh(false);
+  leaveThreadPresence();
+  updateBoardPresenceLocation();
+  updateOnlineDisplay();
 }
 
 function goAdminLogin() {
@@ -1065,6 +1309,7 @@ function renderListView() {
           ${delta > 0 ? `<span class="thread-row-delta">+${delta}</span>` : ""}
           <button class="thread-row-title" data-open="${t.id}">${escapeHtml(t.title)}</button>
           <span class="thread-row-count">(${t.reply_count ?? 0})</span>
+          <span class="thread-row-online" data-thread-online-for="${t.id}">${threadPresenceCounts[t.id] ? `👥${threadPresenceCounts[t.id]}` : ""}</span>
           ${isAdmin() ? `<button class="thread-row-admin-delete" data-admin-del-thread="${t.id}">削除</button>` : ""}
         </div>
         ${previewText ? `<div class="thread-row-preview">${escapeHtml(previewText)}</div>` : ""}
@@ -1214,7 +1459,7 @@ function renderThreadView() {
 
   appEl.innerHTML = `
     <div class="thread-title-bar">
-      <span>${state.currentThread ? escapeHtml(state.currentThread.title) : ""}</span>
+      <span>${state.currentThread ? escapeHtml(state.currentThread.title) : ""}<span class="thread-online-badge" id="threadOnlineBadge">👥 ${currentThreadOnlineCount || 0}人閲覧中</span></span>
       ${isAdmin() ? `<button class="thread-row-admin-delete" id="deleteThreadBtn">スレ削除</button>` : ""}
     </div>
     <div class="thread-nav"><button class="bbs-crumb-link" id="backLink">← スレッド一覧へ戻る</button></div>
@@ -1629,6 +1874,10 @@ sb.auth.onAuthStateChange((_event, session) => {
   render();
   refresh(false);
   setInterval(() => refresh(true), POLL_MS);
+
+  // オンライン人数の共有と、累計訪問カウンター
+  joinBoardPresence();
+  initVisitCounter();
 })();
 </script>
 </body>
