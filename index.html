@@ -325,7 +325,7 @@
   }
 
   /* ▼ 控えめな動的演出 ============ */
-  #app > * { animation: fadeIn 0.28s ease; }
+  #app.view-enter > * { animation: fadeIn 0.28s ease; }
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(4px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -363,7 +363,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    #app > *, #announcementBar, .btn, .thread-row, .post-vote-btn,
+    #app.view-enter > *, #announcementBar, .btn, .thread-row, .post-vote-btn,
     #manualRefreshBtn.spinning .refresh-icon { animation: none !important; transition: none !important; }
   }
 
@@ -1547,6 +1547,17 @@ function render() {
       selectionEnd: typeof active.selectionEnd === "number" ? active.selectionEnd : null,
     };
   }
+
+  // 画面(view)が切り替わった時だけフェードイン。自動更新の再描画では鳴らさない。
+  const viewChanged = state._lastRenderedView !== state.view
+    || state._lastRenderedThreadId !== state.currentThreadId;
+  if (viewChanged) {
+    appEl.classList.remove("view-enter");
+    void appEl.offsetWidth; // 強制リフローで再アニメーションを可能にする
+    appEl.classList.add("view-enter");
+  }
+  state._lastRenderedView = state.view;
+  state._lastRenderedThreadId = state.currentThreadId;
 
   renderTopbarAdmin();
   renderCrumb();
