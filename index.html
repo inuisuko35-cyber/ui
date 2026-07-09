@@ -325,8 +325,8 @@
   }
 
   /* ▼ 控えめな動的演出 ============ */
-  #app.view-enter > * { animation: fadeIn 0.28s ease; }
-  @keyframes fadeIn {
+  /* フェードインはJS側で明示的に発動させる（CSSで自動発火だと自動更新にも巻き込まれるため） */
+  @keyframes viewEnterAnim {
     from { opacity: 0; transform: translateY(4px); }
     to   { opacity: 1; transform: translateY(0); }
   }
@@ -363,8 +363,9 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    #app.view-enter > *, #announcementBar, .btn, .thread-row, .post-vote-btn,
+    #announcementBar, .btn, .thread-row, .post-vote-btn,
     #manualRefreshBtn.spinning .refresh-icon { animation: none !important; transition: none !important; }
+    #app > * { animation: none !important; }
   }
 
   /* 【機能3】アンカーポップアップ用スタイル */
@@ -1548,21 +1549,11 @@ function render() {
     };
   }
 
-  // 画面(view)が切り替わった時だけフェードイン。自動更新の再描画では鳴らさない。
+  // 画面(view)が切り替わった時だけフェードイン。
+  // CSSクラス方式だと自動更新のinnerHTML書き換えでも発火してしまうため、
+  // 画面遷移時のみ、JSで直接子要素にanimationスタイルを付与する方式にする。
   const viewChanged = state._lastRenderedView !== state.view
     || state._lastRenderedThreadId !== state.currentThreadId;
-  if (viewChanged) {
-    appEl.classList.remove("view-enter");
-    void appEl.offsetWidth; // 強制リフローで再アニメーションを可能にする
-    appEl.classList.add("view-enter");
-    // アニメーションが終わったらクラスを外す。
-    // 外しておかないと、次の自動更新でinnerHTMLが書き換わったときに
-    // 新しい子要素がまたアニメーションの対象になってしまうため。
-    clearTimeout(state._viewEnterTimer);
-    state._viewEnterTimer = setTimeout(() => {
-      appEl.classList.remove("view-enter");
-    }, 320);
-  }
   state._lastRenderedView = state.view;
   state._lastRenderedThreadId = state.currentThreadId;
 
@@ -1586,6 +1577,17 @@ function render() {
         }
       }
     }
+  }
+
+  // 画面遷移時のみ、直接の子要素にフェードインアニメを1度だけ適用する
+  if (viewChanged) {
+    Array.from(appEl.children).forEach((child) => {
+      child.style.animation = "viewEnterAnim 0.28s ease";
+      child.addEventListener("animationend", function onEnd() {
+        child.style.animation = "";
+        child.removeEventListener("animationend", onEnd);
+      });
+    });
   }
 }
 
