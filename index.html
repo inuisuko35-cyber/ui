@@ -324,6 +324,49 @@
     animation: wp-highlight 4s ease-out;
   }
 
+  /* ▼ 控えめな動的演出 ============ */
+  #app > * { animation: fadeIn 0.28s ease; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .thread-row {
+    transition: background-color 0.18s ease;
+  }
+  .thread-row:hover { background-color: rgba(47, 109, 47, 0.06); }
+  html.dark-theme .thread-row:hover { background-color: rgba(255, 255, 255, 0.05); }
+
+  .post-item { transition: background-color 0.2s ease; }
+
+  #announcementBar {
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  #announcementBar.hiding {
+    opacity: 0;
+    transform: translateY(-6px);
+    pointer-events: none;
+  }
+
+  .btn, .post-vote-btn, .thread-row-title, .bbs-crumb-link {
+    transition: color 0.15s ease, background-color 0.15s ease, transform 0.1s ease, border-color 0.15s ease;
+  }
+  .btn:active:not(:disabled), .post-vote-btn:active:not(:disabled) {
+    transform: scale(0.96);
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #manualRefreshBtn.spinning { pointer-events: none; }
+  #manualRefreshBtn.spinning .refresh-icon {
+    display: inline-block;
+    animation: spin 0.9s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #app > *, #announcementBar, .btn, .thread-row, .post-vote-btn,
+    #manualRefreshBtn.spinning .refresh-icon { animation: none !important; transition: none !important; }
+  }
+
   /* 【機能3】アンカーポップアップ用スタイル */
   #postPopup {
     display: none;
@@ -499,7 +542,7 @@
   <span>
     愛知総合工科高校＠掲示板
     <button id="themeToggleBtn" style="background:none; border:none; cursor:pointer; font-size:13px; vertical-align:middle; padding:0 6px; margin-left:4px;">🌙</button>
-    <button id="manualRefreshBtn" onclick="handleRefresh()" style="background:none; border:1px solid #fff; border-radius:4px; color:#fff; cursor:pointer; font-size:12px; margin-left:8px; padding:2px 8px;">🔄 更新</button>
+    <button id="manualRefreshBtn" onclick="handleRefresh()" style="background:none; border:1px solid #fff; border-radius:4px; color:#fff; cursor:pointer; font-size:12px; margin-left:8px; padding:2px 8px;"><span class="refresh-icon">🔄</span> 更新</button>
   </span>
   <span class="topbar-admin" id="topbarAdmin"></span>
 </div>
@@ -561,14 +604,14 @@ async function handleRefresh() {
   if (btn) {
     if (btn.disabled) return; // 連打防止
     btn.disabled = true;
-    btn.textContent = "🔄 更新中…";
+    btn.classList.add("spinning");
   }
   try {
     await refresh(false); // silent=falseにして、失敗した時はちゃんとエラーを表示する
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = "🔄 更新";
+      btn.classList.remove("spinning");
     }
   }
 }
@@ -1376,7 +1419,7 @@ async function saveAnnouncement(text) {
     updateAnnouncementBar();
     showNotice("お知らせを更新しました。");
   } catch (err) {
-    showError("お知らせの更新に失敗しました。");
+    showError(err && err.message ? `お知らせの更新に失敗しました：${err.message}` : "お知らせの更新に失敗しました。");
     console.error(err);
   } finally {
     if (saveBtn) {
@@ -1555,7 +1598,9 @@ sb.auth.onAuthStateChange((_event, session) => {
   if (announcementCloseBtn) {
     announcementCloseBtn.onclick = () => {
       localStorage.setItem("aisogi_announcement_dismissed", state.announcement || "");
-      document.getElementById("announcementBar").style.display = "none";
+      const bar = document.getElementById("announcementBar");
+      bar.classList.add("hiding");
+      setTimeout(() => { bar.style.display = "none"; bar.classList.remove("hiding"); }, 260);
     };
   }
 
