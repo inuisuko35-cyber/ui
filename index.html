@@ -238,12 +238,48 @@
     background: #245524;
     border-color: #1a3d1a;
   }
+
+  /* --- 丸い更新ボタン（一覧へ戻るボタンの真上に配置） --- */
+  #manualRefreshBtn {
+    position: fixed;
+    left: 20px;
+    bottom: 66px;
+    z-index: 1900;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #cc7a00;
+    border: 1px solid #8a5200;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  #manualRefreshBtn:hover:not(:disabled) { background: #a86400; }
+  #manualRefreshBtn:active:not(:disabled) { transform: scale(0.92); }
+  #manualRefreshBtn:disabled { opacity: 0.7; cursor: not-allowed; }
+  html.dark-theme #manualRefreshBtn {
+    background: #a86400;
+    border-color: #6b4000;
+  }
+
   @media (max-width: 460px) {
     #floatingBackBtn {
       left: 10px;
       bottom: 10px;
       padding: 8px 13px;
       font-size: 12px;
+    }
+    #manualRefreshBtn {
+      left: 14px;
+      bottom: 58px;
+      width: 36px;
+      height: 36px;
+      font-size: 15px;
     }
   }
   .thread-row {
@@ -764,7 +800,7 @@
   <span>
     愛知総合工科高校＠掲示板
     <button id="themeToggleBtn" style="background:none; border:none; cursor:pointer; font-size:13px; vertical-align:middle; padding:0 6px; margin-left:4px;">🌙</button>
-    <button id="manualRefreshBtn" onclick="handleRefresh()" style="background:none; border:1px solid #fff; border-radius:4px; color:#fff; cursor:pointer; font-size:12px; margin-left:8px; padding:2px 8px;"><span class="refresh-icon">🔄</span> 更新</button>
+    
   </span>
   <span class="topbar-admin" id="topbarAdmin"></span>
 </div>
@@ -795,6 +831,7 @@
 
 <div id="postPopup"></div>
 <div id="toastContainer"></div>
+<button id="manualRefreshBtn" onclick="handleRefresh()" aria-label="更新"><span class="refresh-icon">🔄</span></button>
 <button id="floatingBackBtn" style="display:none;" aria-label="スレッド一覧へ戻る">↑ 一覧へ</button>
 
 <script>
@@ -1268,7 +1305,15 @@ async function refresh(silent) {
   } finally {
     const hasNewPosts = (state.view === "thread" && state.posts.length > prevPostCount && prevPostCount > 0);
     state.loading = false;
-    if (silent && isTypingInForm()) return;
+
+    if (silent && isTypingInForm()) {
+      // 入力中(IME変換中含む)はフォームを壊さないよう、レス一覧だけをその場で更新する
+      if (state.view === "thread") {
+        updatePostsListInPlace();
+      }
+      return;
+    }
+
     render();
     
     if (state.view === "thread") {
@@ -1624,19 +1669,9 @@ function renderListView() {
   });
 }
 
-function renderThreadView() {
-  if (!state.loading && !state.currentThread) {
-    appEl.innerHTML = `
-      <div class="bbs-empty">
-        このスレッドは見つかりませんでした。
-        <div style="margin-top:10px;"><button class="bbs-crumb-link" id="backLink">スレッド一覧へ戻る</button></div>
-      </div>`;
-    document.getElementById("backLink").onclick = backToList;
-    return;
-  }
-
+function buildPostsHtml(posts) {
   const votedPosts = getVotedPosts();
-  const postsHtml = state.posts
+  return posts
     .map((p) => {
       const bikaClass = (p.uid === "ADMIN") ? " admin-bikabika" : "";
       const highlightClass = p.isNew ? " post-highlight" : "";
@@ -1668,6 +1703,116 @@ function renderThreadView() {
       </div>`;
     })
     .join("");
+}
+
+function bindPostEventHandlers(container) {
+  container.querySelectorAll("[data-quote]").forEach((btn) => {
+    btn.onclick = () => {
+      const no = btn.getAttribute("data-quote");
+      const textarea = document.getElementById("rpContent");
+      if (!textarea) return;
+      const sep = textarea.value && !textarea.value.endsWith("\n") ? "\n" : "";
+      textarea.value = `${textarea.value}${sep}>>${no}\n`;
+      textarea.focus();
+    };
+  });
+
+  container.querySelectorAll("[data-anchor]").forEach((span) => {
+    span.onclick = () => {
+      const no = span.getAttribute("data-anchor");
+      const target = appEl.querySelector(`[data-post-no="${no}"]`);
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
+    };
+
+    span.onmouseenter = (e) => {
+      const no = span.getAttribute("data-anchor");
+      const targetPost = state.posts.find(p => String(p.no) === no);
+      if (targetPost) {
+        const bikaClass = (targetPost.uid === "ADMIN") ? " admin-bikabika" : "";
+        popupEl.innerHTML = `
+          <div class="post-header" style="margin-bottom:5px; border-bottom:1px solid #ccc; padding-bottom:2px;">
+            <span class="no">${targetPost.no}</span>
+            <span class="pname${bikaClass}">${escapeHtml(targetPost.name)}</span>
+            <span class="date">${formatDate(targetPost.created_at)}</span>
+            <span class="uid${bikaClass}">ID:${escapeHtml(targetPost.uid || '???')}</span>
+          </div>
+          <div class="post-body" style="font-size:12px; line-height:1.4;">${escapeHtml(targetPost.content)}</div>
+        `;
+        popupEl.style.display = "block";
+
+        const rect = span.getBoundingClientRect();
+        popupEl.style.left = `${window.scrollX + rect.left}px`;
+        popupEl.style.top = `${window.scrollY + rect.bottom + 4}px`;
+      }
+    };
+
+    span.onmouseleave = () => {
+      popupEl.style.display = "none";
+    };
+  });
+
+  container.querySelectorAll("[data-admin-del-post]").forEach((btn) => {
+    btn.onclick = async () => {
+      if (!confirm("このレスを削除しますか？")) return;
+      try {
+        await adminDeletePost(btn.getAttribute("data-admin-del-post"));
+        await refresh(false);
+      } catch (err) {
+        showError("削除に失敗しました。");
+        console.error(err);
+      }
+    };
+  });
+
+  container.querySelectorAll("[data-report]").forEach((btn) => {
+    btn.onclick = async () => {
+      const reason = window.prompt("通報理由（任意・省略可）を入力してください：", "");
+      if (reason === null) return;
+      try {
+        await reportPost(btn.getAttribute("data-report"), reason.trim());
+        showNotice("通報しました。管理者が確認します。");
+      } catch (err) {
+        showError("通報に失敗しました。");
+        console.error(err);
+      }
+    };
+  });
+
+  container.querySelectorAll("[data-vote-good]").forEach((btn) => {
+    btn.onclick = () => handleVoteClick(btn.getAttribute("data-vote-good"), "good");
+  });
+
+  container.querySelectorAll("[data-vote-bad]").forEach((btn) => {
+    btn.onclick = () => handleVoteClick(btn.getAttribute("data-vote-bad"), "bad");
+  });
+}
+
+// 入力中(IME変換中含む)でも、返信フォームには一切触れずにレス一覧だけを更新する軽量版。
+// 5秒ごとの自動更新のたびに、書きかけの内容が消えないようにするため。
+function updatePostsListInPlace() {
+  const container = document.getElementById("postsListContainer");
+  if (!container) return; // スレッド画面が表示されていない場合は何もしない
+  container.innerHTML = state.loading
+    ? `<div class="bbs-loading">読み込んでいます…</div>`
+    : buildPostsHtml(state.posts);
+  bindPostEventHandlers(container);
+
+  const badgeEl = document.getElementById("threadOnlineBadge");
+  if (badgeEl) badgeEl.textContent = `👥 ${currentThreadOnlineCount || 0}人閲覧中`;
+}
+
+function renderThreadView() {
+  if (!state.loading && !state.currentThread) {
+    appEl.innerHTML = `
+      <div class="bbs-empty">
+        このスレッドは見つかりませんでした。
+        <div style="margin-top:10px;"><button class="bbs-crumb-link" id="backLink">スレッド一覧へ戻る</button></div>
+      </div>`;
+    document.getElementById("backLink").onclick = backToList;
+    return;
+  }
+
+  const postsHtml = buildPostsHtml(state.posts);
 
   appEl.innerHTML = `
     <div class="thread-title-bar">
@@ -1675,7 +1820,7 @@ function renderThreadView() {
       ${isAdmin() ? `<button class="thread-row-admin-delete" id="deleteThreadBtn">スレ削除</button>` : ""}
     </div>
     <div class="thread-nav"><button class="bbs-crumb-link" id="backLink">← スレッド一覧へ戻る</button></div>
-    ${state.loading ? `<div class="bbs-loading">読み込んでいます…</div>` : `<div>${postsHtml}</div>`}
+    <div id="postsListContainer">${state.loading ? `<div class="bbs-loading">読み込んでいます…</div>` : postsHtml}</div>
     <form class="post-form reply-form" id="replyForm">
       <div class="post-form-title">書き込む</div>
       <div class="post-form-row">
@@ -1712,84 +1857,7 @@ function renderThreadView() {
     };
   }
 
-  appEl.querySelectorAll("[data-quote]").forEach((btn) => {
-    btn.onclick = () => {
-      const no = btn.getAttribute("data-quote");
-      const textarea = document.getElementById("rpContent");
-      const sep = textarea.value && !textarea.value.endsWith("\n") ? "\n" : "";
-      textarea.value = `${textarea.value}${sep}>>${no}\n`;
-      textarea.focus();
-    };
-  });
-
-  appEl.querySelectorAll("[data-anchor]").forEach((span) => {
-    span.onclick = () => {
-      const no = span.getAttribute("data-anchor");
-      const target = appEl.querySelector(`[data-post-no="${no}"]`);
-      if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
-    };
-
-    span.onmouseenter = (e) => {
-      const no = span.getAttribute("data-anchor");
-      const targetPost = state.posts.find(p => String(p.no) === no);
-      if (targetPost) {
-        const bikaClass = (targetPost.uid === "ADMIN") ? " admin-bikabika" : "";
-        popupEl.innerHTML = `
-          <div class="post-header" style="margin-bottom:5px; border-bottom:1px solid #ccc; padding-bottom:2px;">
-            <span class="no">${targetPost.no}</span>
-            <span class="pname${bikaClass}">${escapeHtml(targetPost.name)}</span>
-            <span class="date">${formatDate(targetPost.created_at)}</span>
-            <span class="uid${bikaClass}">ID:${escapeHtml(targetPost.uid || '???')}</span>
-          </div>
-          <div class="post-body" style="font-size:12px; line-height:1.4;">${escapeHtml(targetPost.content)}</div>
-        `;
-        popupEl.style.display = "block";
-        
-        const rect = span.getBoundingClientRect();
-        popupEl.style.left = `${window.scrollX + rect.left}px`;
-        popupEl.style.top = `${window.scrollY + rect.bottom + 4}px`;
-      }
-    };
-
-    span.onmouseleave = () => {
-      popupEl.style.display = "none";
-    };
-  });
-
-  appEl.querySelectorAll("[data-admin-del-post]").forEach((btn) => {
-    btn.onclick = async () => {
-      if (!confirm("このレスを削除しますか？")) return;
-      try {
-        await adminDeletePost(btn.getAttribute("data-admin-del-post"));
-        await refresh(false);
-      } catch (err) {
-        showError("削除に失敗しました。");
-        console.error(err);
-      }
-    };
-  });
-
-  appEl.querySelectorAll("[data-report]").forEach((btn) => {
-    btn.onclick = async () => {
-      const reason = window.prompt("通報理由（任意・省略可）を入力してください：", "");
-      if (reason === null) return; 
-      try {
-        await reportPost(btn.getAttribute("data-report"), reason.trim());
-        showNotice("通報しました。管理者が確認します。");
-      } catch (err) {
-        showError("通報に失敗しました。");
-        console.error(err);
-      }
-    };
-  });
-
-  appEl.querySelectorAll("[data-vote-good]").forEach((btn) => {
-    btn.onclick = () => handleVoteClick(btn.getAttribute("data-vote-good"), "good");
-  });
-
-  appEl.querySelectorAll("[data-vote-bad]").forEach((btn) => {
-    btn.onclick = () => handleVoteClick(btn.getAttribute("data-vote-bad"), "bad");
-  });
+  bindPostEventHandlers(appEl);
 
   const replyForm = document.getElementById("replyForm");
   replyForm.onsubmit = async (e) => {
