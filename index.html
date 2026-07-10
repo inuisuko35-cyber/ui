@@ -1326,12 +1326,23 @@ async function refresh(silent) {
     const hasNewPosts = (state.view === "thread" && state.posts.length > prevPostCount && prevPostCount > 0);
     state.loading = false;
 
-    if (silent && isTypingInForm()) {
-      // 入力中(IME変換中含む)はフォームを壊さないよう、レス一覧だけをその場で更新する
+    if (silent) {
+      // 自動更新は常に「今表示されている部分だけ」を書き換える軽量版を使う。
+      // フォームの入力内容・スクロール位置（一覧のスクロールも、ページ全体のスクロールも）を保持するため。
       if (state.view === "thread") {
         updatePostsListInPlace();
+        if (!isTypingInForm() && hasNewPosts && isAtBottom) {
+          window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+        }
+        return;
       }
-      return;
+      if (state.view === "list") {
+        updateThreadListInPlace();
+        return;
+      }
+      if (isTypingInForm()) {
+        return; // 管理者ログイン・お知らせ編集など、他の画面でフォーム入力中の保護
+      }
     }
 
     render();
@@ -1555,9 +1566,9 @@ function renderCrumb() {
   }
 }
 
-function renderListView() {
+function buildThreadRowsHtml() {
   const topThreads = state.threads.slice(0, 15);
-  const rows = topThreads
+  return topThreads
     .map((t) => {
       const delta = getDelta(t.id, t.reply_count ?? 0);
       const previewText = t.last_post_content
@@ -1577,7 +1588,15 @@ function renderListView() {
       </div>`;
     })
     .join("");
+}
 
+function buildThreadListWrapHtml() {
+  if (state.loading) return `<div class="bbs-loading">板を読み込んでいます…</div>`;
+  if (state.threads.length === 0) return `<div class="bbs-empty">まだスレッドがありません。最初の1本を立ててみよう。</div>`;
+  return `<div class="thread-list">${buildThreadRowsHtml()}</div>`;
+}
+
+function buildIkioiHtml() {
   const ikioiRows = (state.ikioiThreads || [])
     .map(
       (t, i) => `
@@ -1588,17 +1607,58 @@ function renderListView() {
       </div>`
     )
     .join("");
-  const ikioiBox = (state.ikioiThreads && state.ikioiThreads.length > 0)
-    ? `<div class="ikioi-box">
-        <div class="ikioi-header">🔥 勢いランキング（過去24時間）</div>
-        ${ikioiRows}
-      </div>`
-    : "";
+  if (!state.ikioiThreads || state.ikioiThreads.length === 0) return "";
+  return `<div class="ikioi-box">
+      <div class="ikioi-header">🔥 勢いランキング（過去24時間）</div>
+      ${ikioiRows}
+    </div>`;
+}
 
+function bindThreadListEventHandlers(container) {
+  container.querySelectorAll("[data-open]").forEach((btn) => {
+    btn.onclick = () => openThread(btn.getAttribute("data-open"));
+  });
+
+  container.querySelectorAll("[data-admin-del-thread]").forEach((btn) => {
+    btn.onclick = async () => {
+      if (!confirm("このスレッドを削除しますか？（中のレスも全て削除されます）")) return;
+      try {
+        await adminDeleteThread(btn.getAttribute("data-admin-del-thread"));
+        await refresh(false);
+      } catch (err) {
+        showError("削除に失敗しました。");
+        console.error(err);
+      }
+    };
+  });
+}
+
+// 自動更新のたびにスレ一覧・勢いランキングだけをその場で更新する軽量版。
+// 「新しいスレッドを立てる」フォームや、スクロール位置には一切触れない。
+function updateThreadListInPlace() {
+  const ikioiContainer = document.getElementById("ikioiContainer");
+  const threadListWrap = document.getElementById("threadListWrap");
+  if (!ikioiContainer || !threadListWrap) return; // 一覧画面が表示されていない
+
+  ikioiContainer.innerHTML = buildIkioiHtml();
+
+  const existingList = threadListWrap.querySelector(".thread-list");
+  const prevScrollTop = existingList ? existingList.scrollTop : 0;
+
+  threadListWrap.innerHTML = buildThreadListWrapHtml();
+
+  const newList = threadListWrap.querySelector(".thread-list");
+  if (newList) newList.scrollTop = prevScrollTop;
+
+  bindThreadListEventHandlers(ikioiContainer);
+  bindThreadListEventHandlers(threadListWrap);
+  updateThreadListOnlineBadges();
+}
+
+function renderListView() {
   appEl.innerHTML = `
-    
     ${TOP_IMAGE_URL ? `<div style="text-align: center; margin-bottom: 12px;"><img src="${TOP_IMAGE_URL}" alt="掲示板トップ画像" style="max-width: 100%; height: auto; border: 1px solid #999; border-radius: 4px;"></div>` : ""}
-    ${ikioiBox}
+    <div id="ikioiContainer">${buildIkioiHtml()}</div>
     <button class="new-thread-toggle" id="toggleNewThread">
       ${state.showNewThreadForm ? "▲ スレッド作成フォームを閉じる" : "＋ 新しいスレッドを立てる"}
     </button>
@@ -1624,13 +1684,7 @@ function renderListView() {
         <button type="submit" class="btn btn-primary" id="ntSubmit">スレ立てる</button>
       </div>
     </form>
-    ${
-      state.loading
-        ? `<div class="bbs-loading">板を読み込んでいます…</div>`
-        : state.threads.length === 0
-        ? `<div class="bbs-empty">まだスレッドがありません。最初の1本を立ててみよう。</div>`
-        : `<div class="thread-list">${rows}</div>`
-    }
+    <div id="threadListWrap">${buildThreadListWrapHtml()}</div>
   `;
 
   document.getElementById("toggleNewThread").onclick = () => {
@@ -1673,22 +1727,7 @@ function renderListView() {
     };
   }
 
-  appEl.querySelectorAll("[data-open]").forEach((btn) => {
-    btn.onclick = () => openThread(btn.getAttribute("data-open"));
-  });
-
-  appEl.querySelectorAll("[data-admin-del-thread]").forEach((btn) => {
-    btn.onclick = async () => {
-      if (!confirm("このスレッドを削除しますか？（中のレスも全て削除されます）")) return;
-      try {
-        await adminDeleteThread(btn.getAttribute("data-admin-del-thread"));
-        await refresh(false);
-      } catch (err) {
-        showError("削除に失敗しました。");
-        console.error(err);
-      }
-    };
-  });
+  bindThreadListEventHandlers(appEl);
 }
 
 function buildPostsHtml(posts) {
