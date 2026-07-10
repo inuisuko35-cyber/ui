@@ -1234,7 +1234,8 @@ async function loadThreads() {
   const { data, error } = await sb
     .from("threads")
     .select("*")
-    .order("last_reply_at", { ascending: false });
+    .order("last_reply_at", { ascending: false })
+    .limit(20); // 画面には15件しか出さないので、全件取得する必要はない
   if (error) throw error;
   return data || [];
 }
@@ -1753,7 +1754,7 @@ function buildPostsHtml(posts) {
               : `<button class="post-report-btn" data-report="${p.id}">通報</button>`
           }
         </div>
-        <div class="post-body">${renderContentHtml(p.content)}${p.image_url ? `<img src="${p.image_url}" class="post-image" alt="添付画像">` : ""}</div>
+        <div class="post-body">${renderContentHtml(p.content)}${p.image_url ? `<img src="${p.image_url}" class="post-image" alt="添付画像" loading="lazy">` : ""}</div>
         <div class="post-vote-row">
           <button class="post-vote-btn" data-vote-good="${p.id}" ${hasVoted ? "disabled" : ""}>
             <span class="vote-emoji${p.justVoted === "good" ? " flash-good" : ""}">👍</span><span class="post-vote-count">${p.good_count ?? 0}</span>
