@@ -22,7 +22,7 @@
     color: #000;
     font-size: 13px;
   }
-
+ 
   .bbs-topbar {
     background: #2f6d2f;
     color: #fff;
@@ -51,7 +51,7 @@
   }
   .topbar-admin button:hover { color: #fff; }
   .topbar-admin .sep { color: #9cc99c; margin: 0 4px; }
-
+ 
   .bbs-subbar {
     background: #cae1ca;
     padding: 4px 12px;
@@ -68,13 +68,13 @@
     font-size: inherit;
     padding: 0;
   }
-
+ 
   .bbs-main {
     max-width: 720px;
     margin: 0 auto;
     padding: 10px 12px 40px;
   }
-
+ 
   .bbs-error {
     background: #ffe0e0;
     border: 1px solid #cc0000;
@@ -95,14 +95,14 @@
     display: none;
   }
   .bbs-notice.show { display: block; }
-
+ 
   .bbs-loading, .bbs-empty {
     text-align: center;
     color: #666;
     padding: 30px 10px;
     font-size: 12.5px;
   }
-
+ 
   /* --- Thread list --- */
   .thread-list {
     background: #fff;
@@ -112,6 +112,49 @@
     max-height: 520px;
     overflow-y: auto;
   }
+ 
+  /* --- 勢いランキング --- */
+  .ikioi-box {
+    background: #fff8f0;
+    border: 1px solid #e0a060;
+    margin-bottom: 14px;
+    padding: 2px 0 4px;
+  }
+  .ikioi-header {
+    font-size: 12.5px;
+    font-weight: bold;
+    color: #b8560a;
+    padding: 6px 10px 4px;
+    border-bottom: 1px solid #f0d0a0;
+    margin-bottom: 2px;
+  }
+  .ikioi-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 3px 10px;
+    line-height: 1.5;
+  }
+  .ikioi-rank {
+    color: #cc0000;
+    font-weight: bold;
+    font-size: 12px;
+    min-width: 16px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .ikioi-count {
+    color: #b8560a;
+    font-size: 11px;
+    font-weight: bold;
+    flex-shrink: 0;
+    white-space: nowrap;
+    margin-left: auto;
+    padding-left: 6px;
+  }
+  html.dark-theme .ikioi-box { background: #2a2118; border-color: #7a4a1a; }
+  html.dark-theme .ikioi-header { color: #ff9a4d; border-bottom-color: #4a3520; }
+  html.dark-theme .ikioi-count { color: #ff9a4d; }
   .thread-row {
     display: flex;
     flex-direction: column;
@@ -189,7 +232,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-
+ 
   .new-thread-toggle {
     display: block;
     width: 100%;
@@ -204,7 +247,7 @@
     margin-bottom: 12px;
   }
   .new-thread-toggle:hover { background: #cde3cd; }
-
+ 
   .post-form {
     background: #fff;
     border: 1px solid #999;
@@ -265,12 +308,12 @@
     font-weight: bold;
   }
   .btn-primary:hover:not(:disabled) { background: #245524; }
-
+ 
   input:focus-visible, textarea:focus-visible, button:focus-visible {
     outline: 2px solid #14501e;
     outline-offset: 1px;
   }
-
+ 
   /* --- Thread view --- */
   .thread-title-bar {
     background: #fff;
@@ -286,7 +329,7 @@
     gap: 8px;
   }
   .thread-nav { margin-bottom: 8px; font-size: 12px; }
-
+ 
   .post-item {
     background: #fff;
     border: 1px solid #ddd;
@@ -314,7 +357,7 @@
     animation: bikabika 0.4s linear infinite;
     font-weight: 900 !important;
   }
-
+ 
   /* 【機能1】新着レスの自動強調フェード */
   @keyframes wp-highlight {
     0% { background-color: rgba(255, 235, 59, 0.4); }
@@ -323,14 +366,14 @@
   .post-highlight {
     animation: wp-highlight 4s ease-out;
   }
-
+ 
   /* ▼ 控えめな動的演出 ============ */
   /* フェードインはJS側で明示的に発動させる（CSSで自動発火だと自動更新にも巻き込まれるため） */
   @keyframes viewEnterAnim {
     from { opacity: 0; transform: translateY(4px); }
     to   { opacity: 1; transform: translateY(0); }
   }
-
+ 
   /* --- 掲示板下部フッター（オンライン人数＋累計カウンター） --- */
   #bbsFooter {
     margin-top: 20px;
@@ -393,7 +436,7 @@
   html.dark-theme #bbsFooter #visitCounterDisplay,
   html.dark-theme #bbsFooter #footerOnlineCount,
   html.dark-theme #bbsFooter #footerThreadOnline { color: #ff6b6b; }
-
+ 
   /* スレ一覧の各行にオンライン人数バッジ */
   .thread-row-online {
     font-size: 10.5px;
@@ -404,7 +447,7 @@
     padding-left: 4px;
   }
   html.dark-theme .thread-row-online { color: #4dd865; }
-
+ 
   /* スレ閲覧画面のタイトル横に出す人数バッジ */
   .thread-online-badge {
     display: inline-flex;
@@ -417,15 +460,15 @@
     vertical-align: middle;
   }
   html.dark-theme .thread-online-badge { color: #4dd865; }
-
+ 
   .thread-row {
     transition: background-color 0.18s ease;
   }
   .thread-row:hover { background-color: rgba(47, 109, 47, 0.06); }
   html.dark-theme .thread-row:hover { background-color: rgba(255, 255, 255, 0.05); }
-
+ 
   .post-item { transition: background-color 0.2s ease; }
-
+ 
   #announcementBar {
     transition: opacity 0.25s ease, transform 0.25s ease;
   }
@@ -434,27 +477,27 @@
     transform: translateY(-6px);
     pointer-events: none;
   }
-
+ 
   .btn, .post-vote-btn, .thread-row-title, .bbs-crumb-link {
     transition: color 0.15s ease, background-color 0.15s ease, transform 0.1s ease, border-color 0.15s ease;
   }
   .btn:active:not(:disabled), .post-vote-btn:active:not(:disabled) {
     transform: scale(0.96);
   }
-
+ 
   @keyframes spin { to { transform: rotate(360deg); } }
   #manualRefreshBtn.spinning { pointer-events: none; }
   #manualRefreshBtn.spinning .refresh-icon {
     display: inline-block;
     animation: spin 0.9s linear infinite;
   }
-
+ 
   @media (prefers-reduced-motion: reduce) {
     #announcementBar, .btn, .thread-row, .post-vote-btn,
     #manualRefreshBtn.spinning .refresh-icon { animation: none !important; transition: none !important; }
     #app > * { animation: none !important; }
   }
-
+ 
   /* 【機能3】アンカーポップアップ用スタイル */
   #postPopup {
     display: none;
@@ -470,7 +513,7 @@
     font-size: 13px;
     pointer-events: none;
   }
-
+ 
   .post-body {
     white-space: pre-wrap;
     word-break: break-word;
@@ -492,7 +535,7 @@
   .post-delete { color: #cc0000; }
   .post-quote-btn { color: #666; }
   .post-report-btn { color: #b8860b; }
-
+ 
   .post-vote-row {
     display: flex;
     gap: 14px;
@@ -526,7 +569,7 @@
     35% { filter: drop-shadow(0 0 5px #ff4d4d) brightness(1.5) saturate(2); transform: scale(1.45); }
     100% { filter: none; transform: scale(1); }
   }
-
+ 
   .post-image {
     max-width: 100%;
     max-height: 300px;
@@ -535,9 +578,9 @@
     border: 1px solid #ccc;
     display: block;
   }
-
+ 
   .reply-form { background: #fff; border: 1px solid #999; padding: 10px; margin-top: 14px; }
-
+ 
   /* --- Admin --- */
   .admin-box {
     background: #fff;
@@ -566,7 +609,7 @@
     margin-bottom: 8px;
   }
   .report-card .actions { display: flex; gap: 8px; justify-content: flex-end; }
-
+ 
   /* ============================================================
      【機能5】ダークモード用スタイル（修正：html基準に変更）
      ============================================================ */
@@ -616,7 +659,7 @@
   html.dark-theme .new-thread-toggle { background: #223a22; border-color: #2d4f2d; color: #8ad499; }
   html.dark-theme .new-thread-toggle:hover { background: #2a472a; }
   /* ============================================================ */
-
+ 
   @media (max-width: 460px) {
     .thread-row-meta { display: none; }
     .post-form-row { flex-wrap: wrap; }
@@ -625,7 +668,7 @@
 </style>
 </head>
 <body>
-
+ 
 <div class="bbs-topbar">
   <span>
     愛知総合工科高校＠掲示板
@@ -644,7 +687,7 @@
   <div class="bbs-notice" id="noticeBox"></div>
   <div id="app"></div>
 </div>
-
+ 
 <footer id="bbsFooter">
   <div class="footer-inner">
     <span class="footer-item">
@@ -658,53 +701,53 @@
     </span>
   </div>
 </footer>
-
+ 
 <div id="postPopup"></div>
-
+ 
 <script>
 /* ============================================================
    設定：ここに自分のSupabaseプロジェクトの情報を入れてください。
    ============================================================ */
 const SUPABASE_URL = "https://porrirsbfjiawvkgagco.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_46bYXuvQVPiHkmhFZVrL_w_eJQtPoIa";
-
+ 
 // ▼▼ トップ画像のURL設定（簡単に変更できます！） ▼▼
 // 画像を変えたい時は、新しい画像をGitHubに上げてここのファイル名を書き換えるだけです
 const TOP_IMAGE_URL = "./overlay-image.png"; 
 // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
-
+ 
 const DEFAULT_NAME = "名無しさん@実習中";
 const POLL_MS = 5000;
-
+ 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+ 
 // ============================================================
 // リアルタイムのオンライン人数管理（SupabaseのPresence機能を利用）
 // ・ボード全体で今何人閲覧しているか
 // ・各スレッドで今何人開いているか
 // を全ユーザーで共有して表示する
 // ============================================================
-
+ 
 const clientId = "u_" + Math.random().toString(36).slice(2, 12);
 let boardChannel = null;      // 掲示板全体の在席チャンネル
 let threadChannel = null;     // 現在開いているスレの在席チャンネル
 let currentThreadChannelId = null;
-
+ 
 // スレIDごとのオンライン人数（スレ一覧表示用）
 const threadPresenceCounts = {};
 let boardOnlineCount = 0;
 let currentThreadOnlineCount = 0;
-
+ 
 function joinBoardPresence() {
   if (boardChannel) return;
   boardChannel = sb.channel("presence_board", {
     config: { presence: { key: clientId } },
   });
-
+ 
   boardChannel.on("presence", { event: "sync" }, () => {
     const stateMap = boardChannel.presenceState();
     boardOnlineCount = Object.keys(stateMap).length;
-
+ 
     // 各スレッドごとの在席人数も集計
     Object.keys(threadPresenceCounts).forEach((k) => delete threadPresenceCounts[k]);
     Object.values(stateMap).forEach((entries) => {
@@ -714,25 +757,25 @@ function joinBoardPresence() {
         }
       });
     });
-
+ 
     updateOnlineDisplay();
     updateThreadListOnlineBadges();
   });
-
+ 
   boardChannel.subscribe(async (status) => {
     if (status === "SUBSCRIBED") {
       await boardChannel.track({ thread_id: state.currentThreadId || null });
     }
   });
 }
-
+ 
 async function updateBoardPresenceLocation() {
   if (!boardChannel) return;
   try {
     await boardChannel.track({ thread_id: state.currentThreadId || null });
   } catch (e) { /* 無視 */ }
 }
-
+ 
 function joinThreadPresence(threadId) {
   if (currentThreadChannelId === threadId && threadChannel) return;
   leaveThreadPresence();
@@ -751,7 +794,7 @@ function joinThreadPresence(threadId) {
     }
   });
 }
-
+ 
 function leaveThreadPresence() {
   if (threadChannel) {
     try { sb.removeChannel(threadChannel); } catch (e) {}
@@ -760,11 +803,11 @@ function leaveThreadPresence() {
     currentThreadOnlineCount = 0;
   }
 }
-
+ 
 function updateOnlineDisplay() {
   const boardEl = document.getElementById("footerOnlineCount");
   if (boardEl) boardEl.textContent = boardOnlineCount || "-";
-
+ 
   const threadWrap = document.getElementById("footerThreadOnlineWrap");
   const threadEl = document.getElementById("footerThreadOnline");
   if (state.view === "thread" && state.currentThreadId) {
@@ -773,12 +816,12 @@ function updateOnlineDisplay() {
   } else {
     if (threadWrap) threadWrap.style.display = "none";
   }
-
+ 
   // スレ閲覧画面のタイトル横バッジ
   const badgeEl = document.getElementById("threadOnlineBadge");
   if (badgeEl) badgeEl.textContent = `👥 ${currentThreadOnlineCount || 0}人閲覧中`;
 }
-
+ 
 function updateThreadListOnlineBadges() {
   document.querySelectorAll("[data-thread-online-for]").forEach((el) => {
     const threadId = el.getAttribute("data-thread-online-for");
@@ -786,11 +829,11 @@ function updateThreadListOnlineBadges() {
     el.textContent = count > 0 ? `👥${count}` : "";
   });
 }
-
+ 
 // ============================================================
 // 累計入室カウンター（このタブで初回訪問時に1増やす）
 // ============================================================
-
+ 
 async function initVisitCounter() {
   const displayEl = document.getElementById("visitCounterDisplay");
   const alreadyCounted = sessionStorage.getItem("aisogi_visited");
@@ -810,10 +853,10 @@ async function initVisitCounter() {
     if (displayEl) displayEl.textContent = "-";
   }
 }
-
+ 
 // ============================================================
-
-
+ 
+ 
 // --- 履歴管理（戻る・進むボタン対応） ---
 window.addEventListener('popstate', (e) => {
   const s = e.state || { view: "list", threadId: null };
@@ -832,12 +875,12 @@ window.addEventListener('popstate', (e) => {
   render();
   refresh(false); // 戻った先のデータを最新化
 });
-
+ 
 function pushHistory(view, threadId = null) {
   const currentState = { view, threadId };
   history.pushState(currentState, '', '');
 }
-
+ 
 // --- 更新ボタン処理 ---
 async function handleRefresh() {
   const btn = document.getElementById("manualRefreshBtn");
@@ -855,10 +898,11 @@ async function handleRefresh() {
     }
   }
 }
-
+ 
 const state = {
   view: "list",
   threads: [],
+  ikioiThreads: [],
   currentThreadId: null,
   currentThread: null,
   posts: [],
@@ -869,14 +913,14 @@ const state = {
   justOpenedThread: false,
   announcement: null,
 };
-
+ 
 const appEl = document.getElementById("app");
 const crumbEl = document.getElementById("crumb");
 const errorEl = document.getElementById("errorBox");
 const noticeEl = document.getElementById("noticeBox");
 const topbarAdminEl = document.getElementById("topbarAdmin");
 const popupEl = document.getElementById("postPopup");
-
+ 
 function showError(msg) {
   errorEl.textContent = msg;
   errorEl.classList.add("show");
@@ -891,7 +935,7 @@ function clearMessages() {
   errorEl.classList.remove("show");
   noticeEl.classList.remove("show");
 }
-
+ 
 function updateAnnouncementBar() {
   const bar = document.getElementById("announcementBar");
   const textEl = document.getElementById("announcementText");
@@ -908,14 +952,14 @@ function updateAnnouncementBar() {
   textEl.textContent = state.announcement;
   bar.style.display = "block";
 }
-
+ 
 function getSavedName() {
   return localStorage.getItem("aisogi_name") || "";
 }
 function saveName(name) {
   localStorage.setItem("aisogi_name", name);
 }
-
+ 
 function getVotedPosts() {
   try {
     return new Set(JSON.parse(localStorage.getItem("aisogi_voted_posts") || "[]"));
@@ -933,7 +977,7 @@ function unmarkVoted(postId) {
   voted.delete(postId);
   localStorage.setItem("aisogi_voted_posts", JSON.stringify([...voted]));
 }
-
+ 
 function checkCooldown() {
   const lastPostTime = localStorage.getItem("bbs_last_post_time");
   if (lastPostTime && Date.now() - parseInt(lastPostTime) < 5000) {
@@ -941,7 +985,7 @@ function checkCooldown() {
   }
   return true;
 }
-
+ 
 async function getDailyId() {
   let deviceId = localStorage.getItem('bbs_device_id');
   if (!deviceId) {
@@ -960,7 +1004,7 @@ async function getDailyId() {
   }
   return Math.abs(hash).toString(16).padStart(8, '0');
 }
-
+ 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 function formatDate(iso) {
   const d = new Date(iso);
@@ -1001,7 +1045,7 @@ function renderContentHtml(text) {
 function isAdmin() {
   return !!state.session;
 }
-
+ 
 async function loadThreads() {
   const { data, error } = await sb
     .from("threads")
@@ -1010,7 +1054,18 @@ async function loadThreads() {
   if (error) throw error;
   return data || [];
 }
-
+ 
+async function loadIkioiRanking() {
+  const { data, error } = await sb
+    .from("thread_ikioi")
+    .select("*")
+    .gt("recent_count", 0)
+    .order("recent_count", { ascending: false })
+    .limit(8);
+  if (error) throw error;
+  return data || [];
+}
+ 
 async function loadPosts(threadId) {
   const { data, error } = await sb
     .from("posts")
@@ -1020,7 +1075,7 @@ async function loadPosts(threadId) {
   if (error) throw error;
   return data || [];
 }
-
+ 
 async function loadReports() {
   const { data, error } = await sb
     .from("reports")
@@ -1029,7 +1084,7 @@ async function loadReports() {
   if (error) throw error;
   return data || [];
 }
-
+ 
 async function refresh(silent) {
   let prevPostCount = 0;
   let isAtBottom = false;
@@ -1037,7 +1092,7 @@ async function refresh(silent) {
     prevPostCount = state.posts.length;
     isAtBottom = (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 80;
   }
-
+ 
   try {
     // お知らせ欄は毎回軽く取得しておく（他の人が管理者画面で更新したら反映されるように）
     try {
@@ -1047,9 +1102,10 @@ async function refresh(silent) {
       // お知らせ欄の取得失敗は致命的ではないので握りつぶす
     }
     updateAnnouncementBar();
-
+ 
     if (state.view === "list") {
       state.threads = await loadThreads();
+      state.ikioiThreads = await loadIkioiRanking();
     } else if (state.view === "thread" && state.currentThreadId) {
       const [{ data: threadRow, error: threadErr }, posts] = await Promise.all([
         sb.from("threads").select("*").eq("id", state.currentThreadId).single(),
@@ -1057,7 +1113,7 @@ async function refresh(silent) {
       ]);
       if (threadErr) throw threadErr;
       state.currentThread = threadRow;
-
+ 
       if (prevPostCount > 0 && posts.length > prevPostCount) {
         for (let i = prevPostCount; i < posts.length; i++) {
           posts[i].isNew = true;
@@ -1087,7 +1143,7 @@ async function refresh(silent) {
     }
   }
 }
-
+ 
 function isTypingInForm() {
   const active = document.activeElement;
   return !!(
@@ -1096,37 +1152,37 @@ function isTypingInForm() {
     (active.tagName === "INPUT" || active.tagName === "TEXTAREA")
   );
 }
-
+ 
 async function uploadImage(fileElementId) {
   const fileInput = document.getElementById(fileElementId);
   const file = fileInput.files[0];
   if (!file) return null;
-
+ 
   const MAX_SIZE = 8 * 1024 * 1024; // 8MB
   if (file.size > MAX_SIZE) {
     throw new Error("画像のサイズが大きすぎます（8MB以下にしてください。スマホのカメラ写真は「写真を圧縮」設定にすると小さくなります）");
   }
-
+ 
   // スマホのカメラ写真は拡張子が無い・変な形式のことがあるためフォールバックする
   const hasExt = file.name && file.name.includes(".");
   const ext = (hasExt ? file.name.split(".").pop() : "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
   const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 10)}.${ext}`;
-
+ 
   const { error } = await sb.storage
     .from("bbs-images")
     .upload(fileName, file, {
       contentType: file.type || "image/jpeg",
       upsert: false,
     });
-
+ 
   if (error) {
     throw new Error(`画像のアップロードに失敗しました（${error.message}）`);
   }
-
+ 
   const { data } = sb.storage.from("bbs-images").getPublicUrl(fileName);
   return data.publicUrl;
 }
-
+ 
 async function createThread(title, name, content, imageUrl) {
   const uid = isAdmin() ? "ADMIN" : await getDailyId();
   const { data: thread, error: threadErr } = await sb
@@ -1135,15 +1191,15 @@ async function createThread(title, name, content, imageUrl) {
     .select()
     .single();
   if (threadErr) throw threadErr;
-
+ 
   const { error: postErr } = await sb
     .from("posts")
     .insert({ thread_id: thread.id, name: name || DEFAULT_NAME, content, image_url: imageUrl, uid: uid });
   if (postErr) throw postErr;
-
+ 
   return thread;
 }
-
+ 
 async function createReply(threadId, name, content, imageUrl) {
   const uid = isAdmin() ? "ADMIN" : await getDailyId(); 
   const { error } = await sb
@@ -1151,12 +1207,12 @@ async function createReply(threadId, name, content, imageUrl) {
     .insert({ thread_id: threadId, name: name || DEFAULT_NAME, content, image_url: imageUrl, uid: uid });
   if (error) throw error;
 }
-
+ 
 async function reportPost(postId, reason) {
   const { error } = await sb.from("reports").insert({ post_id: postId, reason: reason || null });
   if (error) throw error;
 }
-
+ 
 async function voteGood(postId) {
   const { error } = await sb.rpc("increment_good", { target_post_id: postId });
   if (error) throw error;
@@ -1165,21 +1221,21 @@ async function voteBad(postId) {
   const { error } = await sb.rpc("increment_bad", { target_post_id: postId });
   if (error) throw error;
 }
-
+ 
 function handleVoteClick(postId, type) {
   const post = state.posts.find((p) => p.id === postId);
   if (!post || getVotedPosts().has(postId)) return;
-
+ 
   markVoted(postId);
   if (type === "good") post.good_count = (post.good_count ?? 0) + 1;
   else post.bad_count = (post.bad_count ?? 0) + 1;
   post.justVoted = type;
   render();
-
+ 
   setTimeout(() => {
     post.justVoted = null;
   }, 600);
-
+ 
   const call = type === "good" ? voteGood(postId) : voteBad(postId);
   call.catch((err) => {
     // 失敗した場合は表示とローカルの投票記録を元に戻す
@@ -1191,7 +1247,7 @@ function handleVoteClick(postId, type) {
     render();
   });
 }
-
+ 
 async function adminDeletePost(postId) {
   const { error } = await sb.from("posts").delete().eq("id", postId);
   if (error) throw error;
@@ -1204,7 +1260,7 @@ async function adminDismissReport(reportId) {
   const { error } = await sb.from("reports").delete().eq("id", reportId);
   if (error) throw error;
 }
-
+ 
 function openThread(id) {
   pushHistory("thread", id);
   state.view = "thread";
@@ -1218,7 +1274,7 @@ function openThread(id) {
   joinThreadPresence(id);
   updateBoardPresenceLocation();
 }
-
+ 
 function backToList() {
   pushHistory("list");
   state.view = "list";
@@ -1232,13 +1288,13 @@ function backToList() {
   updateBoardPresenceLocation();
   updateOnlineDisplay();
 }
-
+ 
 function goAdminLogin() {
   pushHistory("admin-login");
   state.view = "admin-login";
   render();
 }
-
+ 
 function goAdminReports() {
   pushHistory("admin-reports");
   state.view = "admin-reports";
@@ -1246,13 +1302,13 @@ function goAdminReports() {
   render();
   refresh(false);
 }
-
+ 
 function goAdminAnnouncement() {
   pushHistory("admin-announcement");
   state.view = "admin-announcement";
   render();
 }
-
+ 
 function renderTopbarAdmin() {
   if (isAdmin()) {
     topbarAdminEl.innerHTML = `
@@ -1275,7 +1331,7 @@ function renderTopbarAdmin() {
     document.getElementById("adminLoginBtn").onclick = goAdminLogin;
   }
 }
-
+ 
 function renderCrumb() {
   if (state.view === "list") {
     crumbEl.innerHTML = `<span>掲示板トップ &gt; スレッド一覧</span>`;
@@ -1293,7 +1349,7 @@ function renderCrumb() {
     document.getElementById("crumbBack").onclick = backToList;
   }
 }
-
+ 
 function renderListView() {
   const topThreads = state.threads.slice(0, 15);
   const rows = topThreads
@@ -1316,10 +1372,28 @@ function renderListView() {
       </div>`;
     })
     .join("");
-
+ 
+  const ikioiRows = (state.ikioiThreads || [])
+    .map(
+      (t, i) => `
+      <div class="ikioi-row">
+        <span class="ikioi-rank">${i + 1}</span>
+        <button class="thread-row-title" data-open="${t.id}">${escapeHtml(t.title)}</button>
+        <span class="ikioi-count">${t.recent_count}レス/24h</span>
+      </div>`
+    )
+    .join("");
+  const ikioiBox = (state.ikioiThreads && state.ikioiThreads.length > 0)
+    ? `<div class="ikioi-box">
+        <div class="ikioi-header">🔥 勢いランキング（過去24時間）</div>
+        ${ikioiRows}
+      </div>`
+    : "";
+ 
   appEl.innerHTML = `
     
     ${TOP_IMAGE_URL ? `<div style="text-align: center; margin-bottom: 12px;"><img src="${TOP_IMAGE_URL}" alt="掲示板トップ画像" style="max-width: 100%; height: auto; border: 1px solid #999; border-radius: 4px;"></div>` : ""}
+    ${ikioiBox}
     <button class="new-thread-toggle" id="toggleNewThread">
       ${state.showNewThreadForm ? "▲ スレッド作成フォームを閉じる" : "＋ 新しいスレッドを立てる"}
     </button>
@@ -1353,12 +1427,12 @@ function renderListView() {
         : `<div class="thread-list">${rows}</div>`
     }
   `;
-
+ 
   document.getElementById("toggleNewThread").onclick = () => {
     state.showNewThreadForm = !state.showNewThreadForm;
     render();
   };
-
+ 
   const form = document.getElementById("newThreadForm");
   if (form) {
     form.onsubmit = async (e) => {
@@ -1368,7 +1442,7 @@ function renderListView() {
         showError("連続投稿です。5秒以上間隔を空けてください。");
         return;
       }
-
+ 
       const title = document.getElementById("ntTitle").value.trim();
       const name = document.getElementById("ntName").value.trim();
       const content = document.getElementById("ntContent").value.trim();
@@ -1393,11 +1467,11 @@ function renderListView() {
       }
     };
   }
-
+ 
   appEl.querySelectorAll("[data-open]").forEach((btn) => {
     btn.onclick = () => openThread(btn.getAttribute("data-open"));
   });
-
+ 
   appEl.querySelectorAll("[data-admin-del-thread]").forEach((btn) => {
     btn.onclick = async () => {
       if (!confirm("このスレッドを削除しますか？（中のレスも全て削除されます）")) return;
@@ -1411,7 +1485,7 @@ function renderListView() {
     };
   });
 }
-
+ 
 function renderThreadView() {
   if (!state.loading && !state.currentThread) {
     appEl.innerHTML = `
@@ -1422,14 +1496,14 @@ function renderThreadView() {
     document.getElementById("backLink").onclick = backToList;
     return;
   }
-
+ 
   const votedPosts = getVotedPosts();
   const postsHtml = state.posts
     .map((p) => {
       const bikaClass = (p.uid === "ADMIN") ? " admin-bikabika" : "";
       const highlightClass = p.isNew ? " post-highlight" : "";
       const hasVoted = votedPosts.has(p.id);
-
+ 
       return `
       <div class="post-item${highlightClass}" data-post-no="${p.no}">
         <div class="post-header">
@@ -1456,7 +1530,7 @@ function renderThreadView() {
       </div>`;
     })
     .join("");
-
+ 
   appEl.innerHTML = `
     <div class="thread-title-bar">
       <span>${state.currentThread ? escapeHtml(state.currentThread.title) : ""}<span class="thread-online-badge" id="threadOnlineBadge">👥 ${currentThreadOnlineCount || 0}人閲覧中</span></span>
@@ -1483,9 +1557,9 @@ function renderThreadView() {
       </div>
     </form>
   `;
-
+ 
   document.getElementById("backLink").onclick = backToList;
-
+ 
   const deleteThreadBtn = document.getElementById("deleteThreadBtn");
   if (deleteThreadBtn) {
     deleteThreadBtn.onclick = async () => {
@@ -1499,7 +1573,7 @@ function renderThreadView() {
       }
     };
   }
-
+ 
   appEl.querySelectorAll("[data-quote]").forEach((btn) => {
     btn.onclick = () => {
       const no = btn.getAttribute("data-quote");
@@ -1509,14 +1583,14 @@ function renderThreadView() {
       textarea.focus();
     };
   });
-
+ 
   appEl.querySelectorAll("[data-anchor]").forEach((span) => {
     span.onclick = () => {
       const no = span.getAttribute("data-anchor");
       const target = appEl.querySelector(`[data-post-no="${no}"]`);
       if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
     };
-
+ 
     span.onmouseenter = (e) => {
       const no = span.getAttribute("data-anchor");
       const targetPost = state.posts.find(p => String(p.no) === no);
@@ -1538,12 +1612,12 @@ function renderThreadView() {
         popupEl.style.top = `${window.scrollY + rect.bottom + 4}px`;
       }
     };
-
+ 
     span.onmouseleave = () => {
       popupEl.style.display = "none";
     };
   });
-
+ 
   appEl.querySelectorAll("[data-admin-del-post]").forEach((btn) => {
     btn.onclick = async () => {
       if (!confirm("このレスを削除しますか？")) return;
@@ -1556,7 +1630,7 @@ function renderThreadView() {
       }
     };
   });
-
+ 
   appEl.querySelectorAll("[data-report]").forEach((btn) => {
     btn.onclick = async () => {
       const reason = window.prompt("通報理由（任意・省略可）を入力してください：", "");
@@ -1570,15 +1644,15 @@ function renderThreadView() {
       }
     };
   });
-
+ 
   appEl.querySelectorAll("[data-vote-good]").forEach((btn) => {
     btn.onclick = () => handleVoteClick(btn.getAttribute("data-vote-good"), "good");
   });
-
+ 
   appEl.querySelectorAll("[data-vote-bad]").forEach((btn) => {
     btn.onclick = () => handleVoteClick(btn.getAttribute("data-vote-bad"), "bad");
   });
-
+ 
   const replyForm = document.getElementById("replyForm");
   replyForm.onsubmit = async (e) => {
     e.preventDefault();
@@ -1587,7 +1661,7 @@ function renderThreadView() {
       showError("連続投稿です。5秒以上間隔を空けてください。");
       return;
     }
-
+ 
     const name = document.getElementById("rpName").value.trim();
     const content = document.getElementById("rpContent").value.trim();
     if (!content) return;
@@ -1615,7 +1689,7 @@ function renderThreadView() {
     }
   };
 }
-
+ 
 function renderAdminAnnouncementView() {
   appEl.innerHTML = `
     <div class="admin-box" style="max-width:480px;">
@@ -1635,7 +1709,7 @@ function renderAdminAnnouncementView() {
     </div>
   `;
   document.getElementById("announcementInput").value = state.announcement || "";
-
+ 
   document.getElementById("announcementForm").onsubmit = async (e) => {
     e.preventDefault();
     const text = document.getElementById("announcementInput").value.trim();
@@ -1646,7 +1720,7 @@ function renderAdminAnnouncementView() {
     await saveAnnouncement("");
   };
 }
-
+ 
 async function saveAnnouncement(text) {
   const saveBtn = document.getElementById("announcementSave");
   if (saveBtn) {
@@ -1674,7 +1748,7 @@ async function saveAnnouncement(text) {
     }
   }
 }
-
+ 
 function renderAdminLoginView() {
   appEl.innerHTML = `
     <div class="admin-box">
@@ -1714,7 +1788,7 @@ function renderAdminLoginView() {
     }
   };
 }
-
+ 
 function renderAdminReportsView() {
   if (state.loading) {
     appEl.innerHTML = `<div class="bbs-loading">通報一覧を読み込んでいます…</div>`;
@@ -1754,7 +1828,7 @@ function renderAdminReportsView() {
     })
     .join("");
   appEl.innerHTML = `<div>${cards}</div>`;
-
+ 
   appEl.querySelectorAll("[data-dismiss]").forEach((btn) => {
     btn.onclick = async () => {
       try {
@@ -1781,7 +1855,7 @@ function renderAdminReportsView() {
     };
   });
 }
-
+ 
 function render() {
   const active = document.activeElement;
   let restore = null;
@@ -1793,7 +1867,7 @@ function render() {
       selectionEnd: typeof active.selectionEnd === "number" ? active.selectionEnd : null,
     };
   }
-
+ 
   // 画面(view)が切り替わった時だけフェードイン。
   // CSSクラス方式だと自動更新のinnerHTML書き換えでも発火してしまうため、
   // 画面遷移時のみ、JSで直接子要素にanimationスタイルを付与する方式にする。
@@ -1801,7 +1875,7 @@ function render() {
     || state._lastRenderedThreadId !== state.currentThreadId;
   state._lastRenderedView = state.view;
   state._lastRenderedThreadId = state.currentThreadId;
-
+ 
   renderTopbarAdmin();
   renderCrumb();
   if (state.view === "list") renderListView();
@@ -1809,7 +1883,7 @@ function render() {
   else if (state.view === "admin-login") renderAdminLoginView();
   else if (state.view === "admin-reports") renderAdminReportsView();
   else if (state.view === "admin-announcement") renderAdminAnnouncementView();
-
+ 
   if (restore) {
     const el = document.getElementById(restore.id);
     if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) {
@@ -1823,7 +1897,7 @@ function render() {
       }
     }
   }
-
+ 
   // 画面遷移時のみ、直接の子要素にフェードインアニメを1度だけ適用する
   if (viewChanged) {
     Array.from(appEl.children).forEach((child) => {
@@ -1835,17 +1909,17 @@ function render() {
     });
   }
 }
-
+ 
 sb.auth.onAuthStateChange((_event, session) => {
   state.session = session;
   render();
 });
-
-
+ 
+ 
 (async () => {
   // 初回ロード時に現在の状態を履歴に登録
   history.replaceState({ view: state.view, threadId: state.currentThreadId }, '', '');
-
+ 
   // 修正：ダークモードのクラスを body から html (documentElement) に付与するように変更
   const themeToggleBtn = document.getElementById("themeToggleBtn");
   if (localStorage.getItem("bbs_theme") === "dark") {
@@ -1858,7 +1932,7 @@ sb.auth.onAuthStateChange((_event, session) => {
     localStorage.setItem("bbs_theme", isDark ? "dark" : "light");
     themeToggleBtn.textContent = isDark ? "☀️" : "🌙";
   };
-
+ 
   const announcementCloseBtn = document.getElementById("announcementCloseBtn");
   if (announcementCloseBtn) {
     announcementCloseBtn.onclick = () => {
@@ -1868,13 +1942,13 @@ sb.auth.onAuthStateChange((_event, session) => {
       setTimeout(() => { bar.style.display = "none"; bar.classList.remove("hiding"); }, 260);
     };
   }
-
+ 
   const { data } = await sb.auth.getSession();
   state.session = data.session;
   render();
   refresh(false);
   setInterval(() => refresh(true), POLL_MS);
-
+ 
   // オンライン人数の共有と、累計訪問カウンター
   joinBoardPresence();
   initVisitCounter();
@@ -1882,3 +1956,13 @@ sb.auth.onAuthStateChange((_event, session) => {
 </script>
 </body>
 </html>
+ 
+
+
+
+
+
+
+
+
+
