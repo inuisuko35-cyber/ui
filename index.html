@@ -1431,11 +1431,17 @@ async function reportPost(postId, reason) {
 }
 
 async function voteGood(postId) {
-  const { error } = await sb.rpc("increment_good", { target_post_id: postId });
+  const { error } = await sb.rpc("increment_good", {
+    target_post_id: postId,
+    voter_device_key: getPersistentDeviceId(),
+  });
   if (error) throw error;
 }
 async function voteBad(postId) {
-  const { error } = await sb.rpc("increment_bad", { target_post_id: postId });
+  const { error } = await sb.rpc("increment_bad", {
+    target_post_id: postId,
+    voter_device_key: getPersistentDeviceId(),
+  });
   if (error) throw error;
 }
 
