@@ -485,6 +485,21 @@
     font-weight: 900 !important;
   }
 
+  /* スレ主バッジ */
+  .op-badge {
+    display: inline-block;
+    color: #fff;
+    background: #cc5200;
+    font-size: 10px;
+    font-weight: bold;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 3px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  html.dark-theme .op-badge { background: #e06a1e; }
+
   /* 【機能1】新着レスの自動強調フェード */
   @keyframes wp-highlight {
     0% { background-color: rgba(255, 235, 59, 0.4); }
@@ -1150,12 +1165,17 @@ function dismissAnchorToast(toast) {
   setTimeout(() => toast.remove(), 300);
 }
 
-async function getDailyId() {
+function getPersistentDeviceId() {
   let deviceId = localStorage.getItem('bbs_device_id');
   if (!deviceId) {
     deviceId = Math.random().toString(36).substring(2, 15);
     localStorage.setItem('bbs_device_id', deviceId);
   }
+  return deviceId;
+}
+
+async function getDailyId() {
+  const deviceId = getPersistentDeviceId();
   const d = new Date();
   const dateStr = d.toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' });
   const raw = deviceId + dateStr;
@@ -1232,7 +1252,7 @@ async function loadIkioiRanking() {
 
 async function loadPosts(threadId) {
   const { data, error } = await sb
-    .from("posts")
+    .from("posts_public")
     .select("*")
     .eq("thread_id", threadId)
     .order("no", { ascending: true });
@@ -1368,6 +1388,7 @@ async function uploadImage(fileElementId) {
 
 async function createThread(title, name, content, imageUrl) {
   const uid = isAdmin() ? "ADMIN" : await getDailyId();
+  const deviceKey = getPersistentDeviceId();
   const { data: thread, error: threadErr } = await sb
     .from("threads")
     .insert({ title })
@@ -1377,7 +1398,7 @@ async function createThread(title, name, content, imageUrl) {
 
   const { error: postErr } = await sb
     .from("posts")
-    .insert({ thread_id: thread.id, name: name || DEFAULT_NAME, content, image_url: imageUrl, uid: uid });
+    .insert({ thread_id: thread.id, name: name || DEFAULT_NAME, content, image_url: imageUrl, uid: uid, device_key: deviceKey });
   if (postErr) throw postErr;
 
   return thread;
@@ -1385,9 +1406,10 @@ async function createThread(title, name, content, imageUrl) {
 
 async function createReply(threadId, name, content, imageUrl) {
   const uid = isAdmin() ? "ADMIN" : await getDailyId(); 
+  const deviceKey = getPersistentDeviceId();
   const { error } = await sb
     .from("posts")
-    .insert({ thread_id: threadId, name: name || DEFAULT_NAME, content, image_url: imageUrl, uid: uid });
+    .insert({ thread_id: threadId, name: name || DEFAULT_NAME, content, image_url: imageUrl, uid: uid, device_key: deviceKey });
   if (error) throw error;
 }
 
@@ -1676,6 +1698,7 @@ function buildPostsHtml(posts) {
       const bikaClass = (p.uid === "ADMIN") ? " admin-bikabika" : "";
       const highlightClass = p.isNew ? " post-highlight" : "";
       const hasVoted = votedPosts.has(p.id);
+      const isOp = !!p.is_op;
 
       return `
       <div class="post-item${highlightClass}" data-post-no="${p.no}">
@@ -1683,7 +1706,7 @@ function buildPostsHtml(posts) {
           <span class="no">${p.no}</span>
           <span class="pname${bikaClass}">${escapeHtml(p.name)}</span>
           <span class="date">${formatDate(p.created_at)}</span>
-          <span class="uid${bikaClass}">ID:${escapeHtml(p.uid || '???')}</span>
+          <span class="uid${bikaClass}">ID:${escapeHtml(p.uid || '???')}</span>${isOp ? `<span class="op-badge" title="スレッドを立てた人です">主</span>` : ""}
           <button class="post-quote-btn" data-quote="${p.no}">レス</button>
           ${
             isAdmin()
@@ -1729,12 +1752,13 @@ function bindPostEventHandlers(container) {
       const targetPost = state.posts.find(p => String(p.no) === no);
       if (targetPost) {
         const bikaClass = (targetPost.uid === "ADMIN") ? " admin-bikabika" : "";
+        const isOp = !!targetPost.is_op;
         popupEl.innerHTML = `
           <div class="post-header" style="margin-bottom:5px; border-bottom:1px solid #ccc; padding-bottom:2px;">
             <span class="no">${targetPost.no}</span>
             <span class="pname${bikaClass}">${escapeHtml(targetPost.name)}</span>
             <span class="date">${formatDate(targetPost.created_at)}</span>
-            <span class="uid${bikaClass}">ID:${escapeHtml(targetPost.uid || '???')}</span>
+            <span class="uid${bikaClass}">ID:${escapeHtml(targetPost.uid || '???')}</span>${isOp ? `<span class="op-badge">主</span>` : ""}
           </div>
           <div class="post-body" style="font-size:12px; line-height:1.4;">${escapeHtml(targetPost.content)}</div>
         `;
