@@ -873,7 +873,10 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // を全ユーザーで共有して表示する
 // ============================================================
 
-const clientId = "u_" + Math.random().toString(36).slice(2, 12);
+// 同じ端末なら、リロードしても・複数タブを開いても「1人」として数えるようにする
+// (以前は毎回ランダムなIDを作っていたため、同じ人が何度もアクセスするとその分
+//  人数が増えて見えてしまっていた)
+const clientId = getPersistentDeviceId();
 let boardChannel = null;      // 掲示板全体の在席チャンネル
 let threadChannel = null;     // 現在開いているスレの在席チャンネル
 let currentThreadChannelId = null;
@@ -948,6 +951,15 @@ function leaveThreadPresence() {
     currentThreadOnlineCount = 0;
   }
 }
+
+// タブを閉じる・離れる時に在席情報をきちんと消す
+// (これが無いと、閉じ方によっては数秒〜数十秒ゴーストとして残ってしまう)
+window.addEventListener("pagehide", () => {
+  try {
+    if (threadChannel) sb.removeChannel(threadChannel);
+    if (boardChannel) sb.removeChannel(boardChannel);
+  } catch (e) { /* 無視 */ }
+});
 
 function updateOnlineDisplay() {
   const boardEl = document.getElementById("footerOnlineCount");
