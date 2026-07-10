@@ -213,6 +213,39 @@
   @media (prefers-reduced-motion: reduce) {
     .anchor-toast { transition: none; }
   }
+
+  /* --- 常時表示の「一覧へ戻る」浮きボタン --- */
+  #floatingBackBtn {
+    position: fixed;
+    left: 14px;
+    bottom: 16px;
+    z-index: 1900;
+    font-family: 'MS PGothic', 'Courier New', monospace;
+    font-size: 12.5px;
+    font-weight: bold;
+    color: #fff;
+    background: #2f6d2f;
+    border: 1px solid #14501e;
+    border-radius: 20px;
+    padding: 9px 16px;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  #floatingBackBtn:hover { background: #245524; }
+  #floatingBackBtn:active { transform: scale(0.95); }
+  html.dark-theme #floatingBackBtn {
+    background: #245524;
+    border-color: #1a3d1a;
+  }
+  @media (max-width: 460px) {
+    #floatingBackBtn {
+      left: 10px;
+      bottom: 10px;
+      padding: 8px 13px;
+      font-size: 12px;
+    }
+  }
   .thread-row {
     display: flex;
     flex-direction: column;
@@ -762,6 +795,7 @@
 
 <div id="postPopup"></div>
 <div id="toastContainer"></div>
+<button id="floatingBackBtn" style="display:none;" aria-label="スレッド一覧へ戻る">↑ 一覧へ</button>
 
 <script>
 /* ============================================================
@@ -1988,6 +2022,11 @@ function render() {
   else if (state.view === "admin-reports") renderAdminReportsView();
   else if (state.view === "admin-announcement") renderAdminAnnouncementView();
 
+  const floatingBackBtn = document.getElementById("floatingBackBtn");
+  if (floatingBackBtn) {
+    floatingBackBtn.style.display = (state.view === "thread") ? "block" : "none";
+  }
+
   if (restore) {
     const el = document.getElementById(restore.id);
     if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) {
@@ -2045,6 +2084,11 @@ sb.auth.onAuthStateChange((_event, session) => {
       bar.classList.add("hiding");
       setTimeout(() => { bar.style.display = "none"; bar.classList.remove("hiding"); }, 260);
     };
+  }
+
+  const floatingBackBtn = document.getElementById("floatingBackBtn");
+  if (floatingBackBtn) {
+    floatingBackBtn.onclick = () => backToList();
   }
 
   const { data } = await sb.auth.getSession();
